@@ -139,5 +139,5 @@ dmypy.json
 *.pkl
 *.jpg
 *.png
-.json
+*.json
 

@@ -20,7 +20,7 @@ hog_obj = HOG.OrientedGradientsComputer(8, 8, 0.2)
 
 cld_pca = PCA(n_components=64, random_state=5)
 edh_pca = PCA(n_components=128, random_state=5)
-hog_pca = PCA(n_components=256, random_state=5)
+hog_pca = PCA(n_components=128, random_state=5)
 
 
 def save_to_separate_dataframes(descriptor_results_lst: list, output_folder_path: str):
@@ -54,6 +54,7 @@ def save_to_separate_dataframes(descriptor_results_lst: list, output_folder_path
     # deleting to free up memory
     del descriptor_results_lst
 
+    """
     comic_metadata_df = pd.DataFrame.from_records(comic_metadata_array)
     print(comic_metadata_df.shape)
     comic_metadata_df.to_excel(
@@ -66,12 +67,14 @@ def save_to_separate_dataframes(descriptor_results_lst: list, output_folder_path
 
     cld_df = pd.DataFrame(np.array(cld_descriptor_array))
     print(cld_df.shape)
-
+    cld_df.to_excel(os.path.join(output_folder_path, "cld_df.xlsx"), index=False)
+    
     cld_pca.fit(cld_df)
     cld_reduced_dim_df = pd.DataFrame(cld_pca.transform(cld_df))
+    
     print(
-        "cld pca: {}, {}".format(
-            cld_pca.explained_variance_ratio_, sum(cld_pca.explained_variance_ratio_)
+        "cld pca: {}".format(
+            sum(cld_pca.explained_variance_ratio_)
         )
     )
     cld_reduced_dim_df.to_excel(
@@ -87,12 +90,13 @@ def save_to_separate_dataframes(descriptor_results_lst: list, output_folder_path
 
     edh_df = pd.DataFrame(np.array(edh_descriptor_array))
     print(edh_df.shape)
-
+    edh_df.to_excel(os.path.join(output_folder_path, "edh_df.xlsx"), index=False)
+    
     edh_pca.fit(edh_df)
     edh_reduced_dim_df = pd.DataFrame(edh_pca.transform(edh_df))
     print(
-        "edh pca: {}, {}".format(
-            edh_pca.explained_variance_ratio_, sum(edh_pca.explained_variance_ratio_)
+        "edh pca: {}".format(
+            sum(edh_pca.explained_variance_ratio_)
         )
     )
     edh_reduced_dim_df.to_excel(
@@ -105,19 +109,23 @@ def save_to_separate_dataframes(descriptor_results_lst: list, output_folder_path
     print()
     print(" ======= ======== ======= ")
     print()
-
+    """
+    
     hog_df = pd.DataFrame(np.array(hog_descriptor_array))
     print(hog_df.shape)
-
+    hog_df.to_csv(
+        os.path.join(output_folder_path, "hog_df.csv"), index=False
+        )
+    
     hog_pca.fit(hog_df)
     hog_reduced_dim_df = pd.DataFrame(hog_pca.transform(hog_df))
     print(
-        "hog pca: {}, {}".format(
-            hog_pca.explained_variance_ratio_, sum(hog_pca.explained_variance_ratio_)
+        "hog pca: {}".format(
+            sum(hog_pca.explained_variance_ratio_)
         )
     )
-    hog_reduced_dim_df.to_excel(
-        os.path.join(output_folder_path, "hog_reduced_dim_df.xlsx"), index=False
+    hog_reduced_dim_df.to_csv(
+        os.path.join(output_folder_path, "hog_reduced_dim_df.csv"), index=False
     )
     with open(os.path.join(output_folder_path, "hog_pca.pickle"), "wb") as handle:
         pickle.dump(hog_pca, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -138,8 +146,10 @@ def bulk_extractor(
     chunksize: int,
     save_to_pickle=True,
     save_to_dataframe=True,
+    allowable_subfolder_lst = []
 ):
-
+    prcs_start_time = time.time()
+    
     img_filepath_lst = []
     img_comicid_lst = []
     img_pagenum_lst = []
@@ -149,14 +159,25 @@ def bulk_extractor(
     for f in glob.glob(
         os.path.join(parent_dir, "**", "*." + image_format), recursive=True
     ):
-        img_filepath_lst.append(f)
+        if allowable_subfolder_lst:
+            if os.path.basename(os.path.dirname(f)) in allowable_subfolder_lst:
+                img_filepath_lst.append(f)
 
-        img_comicid_lst.append(os.path.basename(os.path.dirname(f)))
+                img_comicid_lst.append(os.path.basename(os.path.dirname(f)))
 
-        bsname = os.path.basename(f).replace("." + image_format, "").split("_")
+                bsname = os.path.basename(f).replace("." + image_format, "").split("_")
 
-        img_pagenum_lst.append(bsname[0])
-        img_panelnum_lst.append(bsname[-1])
+                img_pagenum_lst.append(bsname[0])
+                img_panelnum_lst.append(bsname[-1]) 
+        else:
+            img_filepath_lst.append(f)
+
+            img_comicid_lst.append(os.path.basename(os.path.dirname(f)))
+
+            bsname = os.path.basename(f).replace("." + image_format, "").split("_")
+
+            img_pagenum_lst.append(bsname[0])
+            img_panelnum_lst.append(bsname[-1])
 
     pool = Pool(num_prcs)
 
@@ -165,11 +186,14 @@ def bulk_extractor(
         zip(img_filepath_lst, img_comicid_lst, img_pagenum_lst, img_panelnum_lst),
         chunksize=chunksize,
     )
-
+    
     # Close the pool and wait for the work to finish
     pool.close()
     pool.join()
 
+    print('processing completed: {}'.format( ( time.time()-prcs_start_time )/60.0 ))
+    print(time.time())
+    
     if save_to_pickle:
         with open(
             os.path.join(output_folder_path, "descriptors.pickle"), "wb"
@@ -206,10 +230,14 @@ def single_image_extractor(
 
 if __name__ == "__main__":
     start_time = time.time()
-    parent_dir = "/Users/surajshashidhar/git/thesis_comics_search_xai/data"
+    print(start_time)
+    required_folders_df = pd.read_csv(r"C:\Users\Suraj Shashidhar\Documents\thesis\comicnum_to_book_title - Sheet1.csv").astype(str)
+    testdata_subfolder_lst = list(required_folders_df['comic_no'].unique()) # ['3451', '3452', '3453', '3454', '3455', '3460', '3461', '3462', '3463', '3464', '3465', '3466', '3477'] #list(required_folders_df['comic_no'].unique())
+    output_folder_path = r"C:\Users\Suraj Shashidhar\Documents\thesis\output"
+    parent_dir = r"C:\Users\Suraj Shashidhar\Documents\thesis\raw_panel_images\raw_panel_images"
     image_format = "jpg"
     image_descriptor_dict = {}
-    output_folder_path = "/Users/surajshashidhar/git/thesis_comics_search_xai/data"
+    # output_folder_path = "/Users/surajshashidhar/git/thesis_comics_search_xai/data"
     num_prcs = 10
     chunksize = 50
 
@@ -220,6 +248,7 @@ if __name__ == "__main__":
         output_folder_path,
         num_prcs,
         chunksize,
+        allowable_subfolder_lst=testdata_subfolder_lst
     )
 
     print()
