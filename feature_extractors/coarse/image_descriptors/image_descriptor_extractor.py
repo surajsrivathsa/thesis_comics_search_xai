@@ -23,8 +23,7 @@ edh_pca = PCA(n_components=128, random_state=5)
 hog_pca = PCA(n_components=128, random_state=5)
 
 
-def save_to_separate_dataframes(descriptor_results_lst: list, output_folder_path: str):
-    comic_metadata_df = pd.DataFrame()
+def save_to_separate_dataframes(descriptor_results_lst: list, output_folder_path: str):    comic_metadata_df = pd.DataFrame()
     comic_metadata_array = []
 
     cld_df = pd.DataFrame()
@@ -82,7 +81,6 @@ def save_to_separate_dataframes(descriptor_results_lst: list, output_folder_path
     )
     with open(os.path.join(output_folder_path, "cld_pca.pickle"), "wb") as handle:
         pickle.dump(cld_pca, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
     del cld_df, cld_reduced_dim_df
     print()
     print(" ======= ======== ======= ")
