@@ -61,8 +61,6 @@ def comics_coarse_search(query_comic_book_id: int, feature_weight_dict: dict, to
 
 
 
-
-
 if __name__ == '__main__':
     query_book_comic_id = 3480
     top_n = 21
