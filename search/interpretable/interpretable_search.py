@@ -17,6 +17,9 @@ from triplet_loss import group_triplet_loss, individual_triplet_loss
 from supervised_feature_importance import (
     supervised_feature_importance_using_different_models,
 )
+from unsupervised_feature_importance import (
+    unsupervised_feature_importance_from_laplacian,
+)
 
 ## Loading features and metadata beforehand
 (
@@ -75,6 +78,18 @@ def find_best_features_using_supervised_feature_importance(selected_idx):
         logistic_regression_feature_importance,
         sgd_feature_importance,
     )
+
+
+def find_best_features_using_unsupervised_feature_importance(selected_idx):
+    features_np = interpretable_scaled_features_np[selected_idx, :]
+    labels_np = np.array([[1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0]]).T
+
+    feature_importance = unsupervised_feature_importance_from_laplacian(
+        features_np=features_np,
+        labels_np=labels_np,
+        col_name_lst=interpretable_feature_lst,
+    )
+    return feature_importance
 
 
 if __name__ == "__main__":
@@ -138,5 +153,15 @@ if __name__ == "__main__":
     )
     print()
     print("sgd feature importance: {}".format(sgd_feature_importance))
+    print()
+    print(" === +++++++++++++++++++++++++++ === ")
+    print()
+
+    laplacian_feature_importance = find_best_features_using_unsupervised_feature_importance(
+        selected_idx=selected_idx
+    )
+    print("laplacian feature importance: {}".format(laplacian_feature_importance))
+    print()
+    print(" === +++++++++++++++++++++++++++ === ")
     print()
 
