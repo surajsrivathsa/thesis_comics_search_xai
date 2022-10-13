@@ -28,6 +28,7 @@ from unsupervised_feature_importance import (
 ) = utils.load_all_interpretable_features()
 book_metadata_dict, comic_book_metadata_df = utils.load_book_metadata()
 print(interpretable_scaled_features_np.shape)
+print(interpretable_scaled_features_np[:5, :])
 
 
 def find_best_features_using_triplet_loss(
