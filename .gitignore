@@ -132,12 +132,12 @@ dmypy.json
 
 
 *.pickle
-*.csv
-*.xlsx
 *.txt
 *.ipynb
 *.pkl
 *.jpg
 *.png
-.json
+*.json
+*.xlsx
+*.csv
 

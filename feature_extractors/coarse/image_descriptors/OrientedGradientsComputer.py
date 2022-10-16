@@ -10,7 +10,7 @@ class OrientedGradientsComputer(DescriptorComputer):
         self.threshold = threshold
         self.ykernel = np.matrix([[-1, -2, -1], [0, 0, 0], [1, 2, 1]])
         self.xkernel = np.matrix([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
-        self.bins = 16
+        self.bins = 8
         self.range = [0, 2 * np.pi]
         self.channel = [0]
         self.prefix = "HOG"
