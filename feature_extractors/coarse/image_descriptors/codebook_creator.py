@@ -5,6 +5,7 @@ import pickle
 from multiprocessing import Pool
 import time
 import math
+import glob
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -30,6 +31,35 @@ def extract_book_metadata(filepath:str, filetype: str):
     grouped_comic_df = df.groupby(['comic_id'])['idx'].agg(book_start_idx='min', book_end_idx='max').reset_index()
     grouped_comic_df['book_end_idx'] = grouped_comic_df['book_end_idx'] + 1
     
+    book_metadata_lst = list(grouped_comic_df.to_numpy().tolist())
+    
+    return book_metadata_lst
+
+
+def extract_book_metadata_from_folderpaths(parent_dir: str, image_format: str):
+    counter = 0
+    comic_id = 3958
+    prev_comic_book_title = ''
+    book_metadata_lst = []
+    records_lst = []
+    for f in glob.glob(os.path.join(parent_dir, "**", "*." + image_format), recursive=True ):
+        
+        comic_book_title = os.path.basename(os.path.dirname(f))
+        idx = counter
+        
+        if prev_comic_book_title != comic_book_title:
+            comic_id += 1
+            prev_comic_book_title = comic_book_title
+            
+        records_lst.append({ 'comic_id': comic_id, 'idx': idx, 'comic_book_title': comic_book_title })
+        counter += 1
+        
+    df = pd.DataFrame.from_records(records_lst)
+    # df.to_excel('df.xlsx', index=False)
+    print(df.shape)
+    print(df.head(10))
+    grouped_comic_df = df.groupby(['comic_id'])['idx'].agg(book_start_idx='min', book_end_idx='max').reset_index()
+    grouped_comic_df['book_end_idx'] = grouped_comic_df['book_end_idx'] + 1
     book_metadata_lst = list(grouped_comic_df.to_numpy().tolist())
     
     return book_metadata_lst
@@ -121,21 +151,39 @@ def find_tf_idf_of_bovw(histogram_df: pd.DataFrame):
 
 if __name__ == '__main__':
     
-    cld_filepath = r"C:\Users\Suraj Shashidhar\Documents\thesis\output\cld_reduced_dim_df_20220917.xlsx"
-    edh_filepath = r"C:\Users\Suraj Shashidhar\Documents\thesis\output\edh_reduced_dim_df_20220917.xlsx"
-    hog_filepath = r"C:\Users\Suraj Shashidhar\Documents\thesis\output\hog_reduced_dim_df.csv"
+    cld_filepath = r"C:\Users\Suraj Shashidhar\Documents\thesis\famous_comics_titles\output\cld_reduced_dim_df.xlsx" #r"C:\Users\Suraj Shashidhar\Documents\thesis\output\cld_reduced_dim_df_20220917.xlsx"
+    edh_filepath = r"C:\Users\Suraj Shashidhar\Documents\thesis\famous_comics_titles\output\edh_reduced_dim_df.xlsx" # r"C:\Users\Suraj Shashidhar\Documents\thesis\output\edh_reduced_dim_df_20220917.xlsx"
+    hog_filepath = r"C:\Users\Suraj Shashidhar\Documents\thesis\famous_comics_titles\output\hog_reduced_dim_df.csv" # r"C:\Users\Suraj Shashidhar\Documents\thesis\output\hog_reduced_dim_df.csv"
     comic_metadata_filepath = r"C:\Users\Suraj Shashidhar\Documents\thesis\output\comic_metadata_df_20220917.xlsx"
-    output_folder_path = r"C:\Users\Suraj Shashidhar\Documents\thesis\output"
+    output_folder_path = r"C:\Users\Suraj Shashidhar\Documents\thesis\famous_comics_titles\output" # r"C:\Users\Suraj Shashidhar\Documents\thesis\output"
+    parent_dir = r"C:\Users\Suraj Shashidhar\Documents\thesis\famous_comics_titles\panel_img"
     
     cld_np = read_descriptor_data(cld_filepath, filetype='xlsx').to_numpy()
     edh_np = read_descriptor_data(edh_filepath, filetype='xlsx').to_numpy()
     hog_np = read_descriptor_data(hog_filepath, filetype='csv').to_numpy()
-    book_metadata_lst = extract_book_metadata(comic_metadata_filepath, filetype='xlsx')
+    # book_metadata_lst = extract_book_metadata(comic_metadata_filepath, filetype='xlsx')
+    book_metadata_lst = extract_book_metadata_from_folderpaths(parent_dir=parent_dir, image_format='jpg')
+    print(book_metadata_lst[:10])
+    print(cld_np.shape)
+    
+    if os.path.exists(os.path.join(output_folder_path, "kmeans_cld.pickle")):
+        with open(os.path.join(output_folder_path, "kmeans_cld.pickle"), 'rb') as fp:
+            cld_kmeans = pickle.load(fp)
+
+    if os.path.exists(os.path.join(output_folder_path, "kmeans_edh.pickle")):
+        with open(os.path.join(output_folder_path, "kmeans_edh.pickle"), 'rb') as fp:
+            edh_kmeans = pickle.load(fp)
+
+    if os.path.exists(os.path.join(output_folder_path, "kmeans_hog.pickle")):
+        with open(os.path.join(output_folder_path, "kmeans_hog.pickle"), 'rb') as fp:
+            hog_kmeans = pickle.load(fp)
+
+
     
     # extract visual words, 128 words for each and build histogram
-    build_visual_words(descriptor_np=cld_np, book_metadata_lst=book_metadata_lst, num_visual_words=128, output_folder_path=output_folder_path,descriptor_type='cld', model=None )
-    build_visual_words(descriptor_np=edh_np, book_metadata_lst=book_metadata_lst, num_visual_words=128, output_folder_path=output_folder_path,descriptor_type='edh', model=None )
-    build_visual_words(descriptor_np=hog_np, book_metadata_lst=book_metadata_lst, num_visual_words=128, output_folder_path=output_folder_path,descriptor_type='hog', model=None )
+    build_visual_words(descriptor_np=cld_np, book_metadata_lst=book_metadata_lst, num_visual_words=128, output_folder_path=output_folder_path,descriptor_type='cld', model=cld_kmeans )
+    build_visual_words(descriptor_np=edh_np, book_metadata_lst=book_metadata_lst, num_visual_words=128, output_folder_path=output_folder_path,descriptor_type='edh', model=edh_kmeans )
+    build_visual_words(descriptor_np=hog_np, book_metadata_lst=book_metadata_lst, num_visual_words=128, output_folder_path=output_folder_path,descriptor_type='hog', model=hog_kmeans )
     
     # build TF-IDF vector for each book
     cld_codebook_df = pd.read_csv(os.path.join(output_folder_path,"cld_codebook_df.csv"))

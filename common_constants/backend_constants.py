@@ -6,7 +6,7 @@ parent_dir = d = Path(__file__).resolve().parents[1]
 print(curr_dir, parent_dir)
 
 ## Book metadata information
-BOOK_METADATA_FILEPATH = os.path.join(parent_dir, 'features', "book_metadata.csv")
+BOOK_METADATA_FILEPATH = os.path.join(parent_dir, 'features', "new_comic_book_metadata.csv")
 
 
 ## information about coarse non interpretable features

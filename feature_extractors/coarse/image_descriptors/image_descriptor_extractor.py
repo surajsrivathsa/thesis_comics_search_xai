@@ -21,9 +21,24 @@ hog_obj = HOG.OrientedGradientsComputer(8, 8, 0.2)
 cld_pca = PCA(n_components=64, random_state=5)
 edh_pca = PCA(n_components=128, random_state=5)
 hog_pca = PCA(n_components=128, random_state=5)
+output_folder_path = r"C:\Users\Suraj Shashidhar\Documents\thesis\famous_comics_titles\output"
+
+if os.path.exists(os.path.join(output_folder_path, "cld_pca.pickle")):
+    with open(os.path.join(output_folder_path, "cld_pca.pickle"), 'rb') as fp:
+        cld_pca = pickle.load(fp)
+
+if os.path.exists(os.path.join(output_folder_path, "edh_pca.pickle")):
+    with open(os.path.join(output_folder_path, "edh_pca.pickle"), 'rb') as fp:
+        edh_pca = pickle.load(fp)
+
+if os.path.exists(os.path.join(output_folder_path, "hog_pca.pickle")):
+    with open(os.path.join(output_folder_path, "hog_pca.pickle"), 'rb') as fp:
+        hog_pca = pickle.load(fp)
 
 
-def save_to_separate_dataframes(descriptor_results_lst: list, output_folder_path: str):    comic_metadata_df = pd.DataFrame()
+
+def save_to_separate_dataframes(descriptor_results_lst: list, output_folder_path: str):
+    comic_metadata_df = pd.DataFrame()
     comic_metadata_array = []
 
     cld_df = pd.DataFrame()
@@ -53,7 +68,7 @@ def save_to_separate_dataframes(descriptor_results_lst: list, output_folder_path
     # deleting to free up memory
     del descriptor_results_lst
 
-    """
+    
     comic_metadata_df = pd.DataFrame.from_records(comic_metadata_array)
     print(comic_metadata_df.shape)
     comic_metadata_df.to_excel(
@@ -68,7 +83,7 @@ def save_to_separate_dataframes(descriptor_results_lst: list, output_folder_path
     print(cld_df.shape)
     cld_df.to_excel(os.path.join(output_folder_path, "cld_df.xlsx"), index=False)
     
-    cld_pca.fit(cld_df)
+    # cld_pca.fit(cld_df)
     cld_reduced_dim_df = pd.DataFrame(cld_pca.transform(cld_df))
     
     print(
@@ -90,7 +105,7 @@ def save_to_separate_dataframes(descriptor_results_lst: list, output_folder_path
     print(edh_df.shape)
     edh_df.to_excel(os.path.join(output_folder_path, "edh_df.xlsx"), index=False)
     
-    edh_pca.fit(edh_df)
+    # edh_pca.fit(edh_df)
     edh_reduced_dim_df = pd.DataFrame(edh_pca.transform(edh_df))
     print(
         "edh pca: {}".format(
@@ -107,7 +122,7 @@ def save_to_separate_dataframes(descriptor_results_lst: list, output_folder_path
     print()
     print(" ======= ======== ======= ")
     print()
-    """
+    
     
     hog_df = pd.DataFrame(np.array(hog_descriptor_array))
     print(hog_df.shape)
@@ -115,7 +130,7 @@ def save_to_separate_dataframes(descriptor_results_lst: list, output_folder_path
         os.path.join(output_folder_path, "hog_df.csv"), index=False
         )
     
-    hog_pca.fit(hog_df)
+    # hog_pca.fit(hog_df)
     hog_reduced_dim_df = pd.DataFrame(hog_pca.transform(hog_df))
     print(
         "hog pca: {}".format(
@@ -165,7 +180,7 @@ def bulk_extractor(
 
                 bsname = os.path.basename(f).replace("." + image_format, "").split("_")
 
-                img_pagenum_lst.append(bsname[0])
+                img_pagenum_lst.append(bsname[1])
                 img_panelnum_lst.append(bsname[-1]) 
         else:
             img_filepath_lst.append(f)
@@ -174,9 +189,10 @@ def bulk_extractor(
 
             bsname = os.path.basename(f).replace("." + image_format, "").split("_")
 
-            img_pagenum_lst.append(bsname[0])
+            img_pagenum_lst.append(bsname[1])
             img_panelnum_lst.append(bsname[-1])
 
+    print('number of images: {}'.format(len(img_filepath_lst)))
     pool = Pool(num_prcs)
 
     descriptor_results_lst = pool.starmap(
@@ -229,10 +245,10 @@ def single_image_extractor(
 if __name__ == "__main__":
     start_time = time.time()
     print(start_time)
-    required_folders_df = pd.read_csv(r"C:\Users\Suraj Shashidhar\Documents\thesis\comicnum_to_book_title - Sheet1.csv").astype(str)
-    testdata_subfolder_lst = list(required_folders_df['comic_no'].unique()) # ['3451', '3452', '3453', '3454', '3455', '3460', '3461', '3462', '3463', '3464', '3465', '3466', '3477'] #list(required_folders_df['comic_no'].unique())
-    output_folder_path = r"C:\Users\Suraj Shashidhar\Documents\thesis\output"
-    parent_dir = r"C:\Users\Suraj Shashidhar\Documents\thesis\raw_panel_images\raw_panel_images"
+    # required_folders_df = pd.read_csv(r"C:\Users\Suraj Shashidhar\Documents\thesis\comicnum_to_book_title - Sheet1.csv").astype(str)
+    # testdata_subfolder_lst = list(required_folders_df['comic_no'].unique()) # ['3451', '3452', '3453', '3454', '3455', '3460', '3461', '3462', '3463', '3464', '3465', '3466', '3477'] #list(required_folders_df['comic_no'].unique())
+    output_folder_path = r"C:\Users\Suraj Shashidhar\Documents\thesis\famous_comics_titles\output"
+    parent_dir = r"C:\Users\Suraj Shashidhar\Documents\thesis\famous_comics_titles\panel_img" # r"C:\Users\Suraj Shashidhar\Documents\thesis\raw_panel_images\raw_panel_images"
     image_format = "jpg"
     image_descriptor_dict = {}
     # output_folder_path = "/Users/surajshashidhar/git/thesis_comics_search_xai/data"
@@ -246,7 +262,7 @@ if __name__ == "__main__":
         output_folder_path,
         num_prcs,
         chunksize,
-        allowable_subfolder_lst=testdata_subfolder_lst
+        allowable_subfolder_lst=[]
     )
 
     print()
