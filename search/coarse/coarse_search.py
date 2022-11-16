@@ -38,7 +38,7 @@ def get_top_n_matching_book_info(idx_top_n_np, sim_score_top_n_np, comic_info_di
 def comics_coarse_search(query_comic_book_id: int, feature_weight_dict: dict, top_n: int):
 
     # remove this later
-    query_book_id = query_comic_book_id - 3451
+    query_book_id = query_comic_book_id # -3451
     
     # get similarity for all features
     cld_cosine_similarity = utils.cosine_similarity(cld_tfidf_np[:, :], cld_tfidf_np[max(query_book_id, 0):query_book_id+1,  : ])
@@ -62,11 +62,11 @@ def comics_coarse_search(query_comic_book_id: int, feature_weight_dict: dict, to
 
 
 if __name__ == '__main__':
-    query_book_comic_id = 3480
+    query_book_comic_id = 1262 # 1647(tin-tin), 520(aquaman), 558(asterix), 587(Avengers), 650(Batman), 1270(Justice Society)
     top_n = 21
-    feature_weight_dict = {'cld': 0.2, 'edh': 0.2, 'hog': 0.2, 'text': 1.4} #{'cld': 0.4, 'edh': 0.4, 'hog': 0.4, 'text': 0.8}
+    feature_weight_dict = {'cld': 0.1, 'edh': 0.1, 'hog': 0.1, 'text': 1.7} #{'cld': 0.4, 'edh': 0.4, 'hog': 0.4, 'text': 0.8}
     
-    print('query book info: {}'.format(book_metadata_dict[query_book_comic_id-3451]))
+    print('query book info: {}'.format(book_metadata_dict[query_book_comic_id]))
     
     top_n_results_df = comics_coarse_search(query_book_comic_id, feature_weight_dict=feature_weight_dict, top_n=top_n)
     print(top_n_results_df.head(top_n))

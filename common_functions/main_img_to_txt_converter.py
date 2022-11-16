@@ -24,24 +24,27 @@ if __name__ == '__main__':
 
     book_metadata_dict, comic_book_metadata_df =  utils.load_book_metadata()
     
+    
     # individual_comic_lst = comic_book_metadata_df.loc[ comic_book_metadata_df['our_idx'] >= 499 , 'Book Title'].tolist()
     # parent_folderpath_lst = comic_book_metadata_df.loc[ comic_book_metadata_df['our_idx'] >= 499 , 'img_folderpath'].tolist()
     # print(len(individual_comic_lst))
     
     full_records_dict_lst = []
-    required_issues_lst = ["avengers", "captain_america",  "captain_steven_savage", "daredevil", "flash", "hulk", "iron_man", "nick_fury", 
-                             "rawhide_kid", "silver_surfer", "spiderman", "superman", "thor", "x-men" ]
+    required_issues_lst = ['asterix','funny_man', 'conan_the_barbarian']
+    # ['archie', 'asterix', 'captain_marvel', 'conan_the_barbarian', 'donald_duck', 'fantastic_four', 'flintstones', 'funny_man', 'ghost_rider', 'green_lantern', 'jetsons', 'power_rangers', 'tarzan', 'the_boys', 'tin-tin', 'watchmen' ]
+    #["aquaman", "batman", "blondie", "from_hell", "funny_man", "justice_league", "justice_society", "maus", "nick_fury", "persepolis", "power_rangers", "spectre" ,"tomb_raider", "wonder_woman" ]
     filtered_comic_book_metadata_df = comic_book_metadata_df[comic_book_metadata_df['Issue'].isin(required_issues_lst)]
     
     individual_comic_lst = filtered_comic_book_metadata_df['Book Title'].tolist()
     parent_folderpath_lst = filtered_comic_book_metadata_df['img_folderpath'].tolist()
     our_idx_lst = filtered_comic_book_metadata_df['our_idx'].tolist()
     comic_no_lst = filtered_comic_book_metadata_df['comic_no'].tolist()
+    text_folderpath_lst = [os.path.join(os.path.dirname(di), 'text') for di in parent_folderpath_lst]
     our_idx = 499
     comic_no = 3950
 
-    for idx, (ind_cmc, parent_fldr, our_idx, comic_no) in enumerate(zip( individual_comic_lst, parent_folderpath_lst, our_idx_lst, comic_no_lst )):
-        record = {'comic_id': comic_no, 'individual_comic_name': ind_cmc, 'parent_folder_path': parent_fldr, 'our_idx': our_idx }
+    for idx, (ind_cmc, parent_fldr, our_idx, comic_no, text_fldr) in enumerate(zip( individual_comic_lst, parent_folderpath_lst, our_idx_lst, comic_no_lst, text_folderpath_lst )):
+        record = {'comic_id': comic_no, 'individual_comic_name': ind_cmc, 'parent_folder_path': parent_fldr, 'our_idx': our_idx , 'text_folder_path': text_fldr}
         full_records_dict_lst.append(record)
     
     print('books to be processed: {}'.format(len(full_records_dict_lst)))
@@ -54,9 +57,9 @@ if __name__ == '__main__':
     
     start_time = time.time()
     
-    with ProcessPool(6) as prcs_pool:
+    with ProcessPool(4) as prcs_pool:
         # execute tasks in chunks, block until all complete
-        all_book_record_lst = prcs_pool.map(img_txt_extract.process_comic_book_text, full_records_dict_lst, chunksize=10)
+        all_book_record_lst = prcs_pool.map(img_txt_extract.process_comic_book_text, full_records_dict_lst, chunksize=2)
     
     end_time = time.time()
     
@@ -75,5 +78,5 @@ if __name__ == '__main__':
     print()  
     print('pages processed: {}'.format(len(flat_list)))
     print()
-    print(all_text_df.head())
+    print(all_text_df.head()) # 10789 pages/ 170 min
     

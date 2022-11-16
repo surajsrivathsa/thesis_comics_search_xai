@@ -1,7 +1,7 @@
 import os, sys
-from tkinter import image_types
 import pandas as pd, numpy as np
-import re, shutil, glob, cv2
+import glob
+import cv2
 import pickle
 from sklearn.decomposition import PCA
 import time
@@ -21,7 +21,7 @@ hog_obj = HOG.OrientedGradientsComputer(8, 8, 0.2)
 cld_pca = PCA(n_components=64, random_state=5)
 edh_pca = PCA(n_components=128, random_state=5)
 hog_pca = PCA(n_components=128, random_state=5)
-output_folder_path = r"C:\Users\Suraj Shashidhar\Documents\thesis\famous_comics_titles\output"
+output_folder_path = r"C:\Users\Suraj Shashidhar\Documents\thesis\output"
 
 if os.path.exists(os.path.join(output_folder_path, "cld_pca.pickle")):
     with open(os.path.join(output_folder_path, "cld_pca.pickle"), 'rb') as fp:
@@ -71,9 +71,7 @@ def save_to_separate_dataframes(descriptor_results_lst: list, output_folder_path
     
     comic_metadata_df = pd.DataFrame.from_records(comic_metadata_array)
     print(comic_metadata_df.shape)
-    comic_metadata_df.to_excel(
-        os.path.join(output_folder_path, "comic_metadata_df.xlsx"), index=False
-    )
+    comic_metadata_df.to_csv(os.path.join(output_folder_path, "comic_metadata_df.csv"), index=False)
 
     print()
     print(" ======= ======== ======= ")
@@ -81,21 +79,18 @@ def save_to_separate_dataframes(descriptor_results_lst: list, output_folder_path
 
     cld_df = pd.DataFrame(np.array(cld_descriptor_array))
     print(cld_df.shape)
-    cld_df.to_excel(os.path.join(output_folder_path, "cld_df.xlsx"), index=False)
+    cld_df.to_csv(os.path.join(output_folder_path, "cld_df.csv"), index=False)
     
     # cld_pca.fit(cld_df)
     cld_reduced_dim_df = pd.DataFrame(cld_pca.transform(cld_df))
     
-    print(
-        "cld pca: {}".format(
-            sum(cld_pca.explained_variance_ratio_)
-        )
-    )
-    cld_reduced_dim_df.to_excel(
-        os.path.join(output_folder_path, "cld_reduced_dim_df.xlsx"), index=False
-    )
+    print("cld pca: {}".format(sum(cld_pca.explained_variance_ratio_)))
+    
+    cld_reduced_dim_df.to_csv(os.path.join(output_folder_path, "cld_reduced_dim_df.csv"), index=False)
+    
     with open(os.path.join(output_folder_path, "cld_pca.pickle"), "wb") as handle:
         pickle.dump(cld_pca, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        
     del cld_df, cld_reduced_dim_df
     print()
     print(" ======= ======== ======= ")
@@ -103,18 +98,15 @@ def save_to_separate_dataframes(descriptor_results_lst: list, output_folder_path
 
     edh_df = pd.DataFrame(np.array(edh_descriptor_array))
     print(edh_df.shape)
-    edh_df.to_excel(os.path.join(output_folder_path, "edh_df.xlsx"), index=False)
+    edh_df.to_csv(os.path.join(output_folder_path, "edh_df.csv"), index=False)
     
     # edh_pca.fit(edh_df)
     edh_reduced_dim_df = pd.DataFrame(edh_pca.transform(edh_df))
-    print(
-        "edh pca: {}".format(
-            sum(edh_pca.explained_variance_ratio_)
-        )
-    )
-    edh_reduced_dim_df.to_excel(
-        os.path.join(output_folder_path, "edh_reduced_dim_df.xlsx"), index=False
-    )
+    
+    print("edh pca: {}".format(sum(edh_pca.explained_variance_ratio_)))
+    
+    edh_reduced_dim_df.to_csv(os.path.join(output_folder_path, "edh_reduced_dim_df.csv"), index=False)
+    
     with open(os.path.join(output_folder_path, "edh_pca.pickle"), "wb") as handle:
         pickle.dump(edh_pca, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -225,21 +217,26 @@ def bulk_extractor(
 def single_image_extractor(
     img_filepath: str, img_comicid="", img_pagenum="", img_panelnum=""
 ):
-
-    img = cv2.imread(img_filepath)
-    cld_descriptor = cld_obj.compute(img)
-    edh_descriptor = edh_obj.compute(img).ravel()
-    hog_descriptor = hog_obj.compute(img).ravel()
-
-    return {
-        "comic_id": img_comicid,
-        "page_num": img_pagenum,
-        "panel_num": img_panelnum,
-        "image_filepath": img_filepath,
-        "cld_descriptor": cld_descriptor,
-        "edh_descriptor": edh_descriptor,
-        "hog_descriptor": hog_descriptor,
-    }
+    try:
+        img = cv2.imread(img_filepath)
+        cld_descriptor = cld_obj.compute(img)
+        edh_descriptor = edh_obj.compute(img).ravel()
+        hog_descriptor = hog_obj.compute(img).ravel()
+        # print(cld_descriptor.shape, edh_descriptor.shape, hog_descriptor.shape)
+    except Exception as e:
+        cld_descriptor = np.zeros((192,))
+        edh_descriptor = np.zeros((320,))
+        hog_descriptor = np.zeros((512,))
+    finally:
+        return {
+            "comic_id": img_comicid,
+            "page_num": img_pagenum,
+            "panel_num": img_panelnum,
+            "image_filepath": img_filepath,
+            "cld_descriptor": cld_descriptor,
+            "edh_descriptor": edh_descriptor,
+            "hog_descriptor": hog_descriptor,
+        }
 
 
 if __name__ == "__main__":
@@ -247,13 +244,13 @@ if __name__ == "__main__":
     print(start_time)
     # required_folders_df = pd.read_csv(r"C:\Users\Suraj Shashidhar\Documents\thesis\comicnum_to_book_title - Sheet1.csv").astype(str)
     # testdata_subfolder_lst = list(required_folders_df['comic_no'].unique()) # ['3451', '3452', '3453', '3454', '3455', '3460', '3461', '3462', '3463', '3464', '3465', '3466', '3477'] #list(required_folders_df['comic_no'].unique())
-    output_folder_path = r"C:\Users\Suraj Shashidhar\Documents\thesis\famous_comics_titles\output"
-    parent_dir = r"C:\Users\Suraj Shashidhar\Documents\thesis\famous_comics_titles\panel_img" # r"C:\Users\Suraj Shashidhar\Documents\thesis\raw_panel_images\raw_panel_images"
+    output_folder_path = r"C:\Users\Suraj Shashidhar\Documents\thesis\output"
+    parent_dir = r"C:\Users\Suraj Shashidhar\Documents\thesis\panel_img" # r"C:\Users\Suraj Shashidhar\Documents\thesis\raw_panel_images\raw_panel_images"
     image_format = "jpg"
     image_descriptor_dict = {}
     # output_folder_path = "/Users/surajshashidhar/git/thesis_comics_search_xai/data"
-    num_prcs = 10
-    chunksize = 50
+    num_prcs = 12
+    chunksize = 10
 
     bulk_extractor(
         parent_dir,
@@ -264,7 +261,11 @@ if __name__ == "__main__":
         chunksize,
         allowable_subfolder_lst=[]
     )
+    
+    # with open(os.path.join(output_folder_path, "descriptors.pickle"), "rb") as handle:
+    #     descriptor_results_lst = pickle.load(handle)
 
+    # save_to_separate_dataframes(descriptor_results_lst, output_folder_path=output_folder_path)
     print()
     print("Time Taken in minutes: {}".format((time.time() - start_time) / 60.0))
 

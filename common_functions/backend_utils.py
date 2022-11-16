@@ -42,19 +42,19 @@ def load_book_metadata():
 def load_all_coarse_features():
     cld_tfidf_df = pd.read_csv(cst.CLD_TF_IDF_FILEPATH)
     cld_tfidf_np = cld_tfidf_df.to_numpy()
-    cld_tfidf_np = cld_tfidf_np[:165, 1:]
+    cld_tfidf_np = cld_tfidf_np[:, 1:]
 
     edh_tfidf_df = pd.read_csv(cst.EDH_TF_IDF_FILEPATH)
     edh_tfidf_np = edh_tfidf_df.to_numpy()
-    edh_tfidf_np = edh_tfidf_np[:165, 1:]
+    edh_tfidf_np = edh_tfidf_np[:, 1:]
 
     hog_tfidf_df = pd.read_csv(cst.HOG_TF_IDF_FILEPATH)
     hog_tfidf_np = hog_tfidf_df.to_numpy()
-    hog_tfidf_np = hog_tfidf_np[:165, 1:]
+    hog_tfidf_np = hog_tfidf_np[:, 1:]
 
     text_tfidf_df = pd.read_csv(cst.TEXT_TF_IDF_FILEPATH)
     text_tfidf_np = text_tfidf_df.to_numpy()
-    text_tfidf_np = text_tfidf_np[:165, 1:]
+    text_tfidf_np = text_tfidf_np[:, 1:]
 
     return (
         cld_tfidf_df,
