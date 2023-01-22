@@ -7,10 +7,10 @@ def group_triplet_loss_single_epoch(
     positive_feat_np,
     negative_feat_np,
     margin=0.1,
-    fd=[0, 16, 19, 20],
-    global_weights=np.array([1.0, 1.0, 1.0]),
+    fd=[0, 3, 48, 64, 65],
+    global_weights=np.array([1.0, 1.0, 1.0, 1.0]),
 ):
-    loss_vector = np.array([0.0, 0.0, 0.0])
+    loss_vector = np.array([0.0, 0.0, 0.0, 0.0])
     for idx, elem in enumerate(fd):
 
         if idx == len(fd) - 1:
@@ -55,10 +55,10 @@ def group_triplet_loss(
     epochs=1001,
     learning_rate=1e-2,
     margin=0.3,
-    fd=[0, 16, 19, 20],
+    fd=[0, 3, 48, 64, 65],
 ):
 
-    print(global_weights)
+    # print(global_weights)
     for i in range(epochs):
         loss_vector = group_triplet_loss_single_epoch(
             anchor_feat_np=anchor_feature_np,
@@ -73,19 +73,16 @@ def group_triplet_loss(
         # renormalize global weights so that they adjust to one
         global_weights = global_weights / (np.max(global_weights) + 1e-6)
 
-        if i % 500 == 0:
-            print(
-                "epoch: {} | loss_vector: {} | global weights: {}".format(
-                    i, loss_vector, global_weights
-                )
-            )
-            print(" ------- ------- ------- ------- -------- ------")
-            print()
+        # if i % 250 == 0:
+        #     print("epoch: {} | loss_vector: {} | global weights: {}".format(i, loss_vector, global_weights))
+        #     print(" ------- ------- ------- ------- -------- ------")
+        #     print()
 
     feature_importance = {
-        "genre": global_weights[0],
         "gender": global_weights[0],
-        "story_pace": global_weights[2],
+        "super_sense": global_weights[1],
+        "genre": global_weights[2],
+        "story_pace": global_weights[3],
     }
     return feature_importance
 
@@ -96,7 +93,7 @@ def individual_triplet_loss_single_epoch(
     negative_feat_np,
     global_weights,
     margin=0.2,
-    fd=[0, 16, 19, 20],
+    fd=[0, 3, 48, 64, 65],
 ):
     loss_vector = np.zeros_like(global_weights)
 
@@ -154,14 +151,14 @@ def individual_triplet_loss(
             np.max(individual_global_weights) + 1e-6
         )
 
-        if i % 500 == 0:
-            print(
-                "epoch: {} | loss_vector: {} | global weights: {}".format(
-                    i, loss_vector, individual_global_weights
-                )
-            )
-            print(" ------- ------- ------- ------- -------- ------")
-            print()
+        # if i % 500 == 0:
+        #     print(
+        #         "epoch: {} | loss_vector: {} | global weights: {}".format(
+        #             i, loss_vector, individual_global_weights
+        #         )
+        #     )
+        #     print(" ------- ------- ------- ------- -------- ------")
+        #     print()
 
     feature_importance = {k: v for k, v in zip(cols_lst, individual_global_weights)}
     return feature_importance

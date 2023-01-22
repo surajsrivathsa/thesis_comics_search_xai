@@ -10,6 +10,11 @@ import common_constants.backend_constants as cst
 def cosine_similarity(u: np.array, v: np.array):
     u = np.expand_dims(u, 1)
     n = np.sum(u * v, axis=2)
+    # print()
+    # print(u.shape, n.shape)
+    # print()
+    # print(np.linalg.norm(u, axis=2).shape, np.linalg.norm(v, axis=1).shape)
+    # print()
     d = np.linalg.norm(u, axis=2) * np.linalg.norm(v, axis=1)
     return n / d
 
@@ -68,7 +73,7 @@ def load_all_coarse_features():
     )
 
 
-def load_all_interpretable_features():
+def load_all_interpretable_features_old():
   
     with open(cst.STORY_PACE_FEATURE_FILEPATH, "rb") as handle:
         pace_of_story_info_feature_dict = pickle.load(handle)
@@ -91,4 +96,23 @@ def load_all_interpretable_features():
         interpretable_scaled_features_np,
         interpretable_feature_lst,
     )
+
+
+def load_all_interpretable_features():
+    interpretable_features_df = pd.read_csv(cst.INTERPRETABLE_FEATURES_FILEPATH)
+    interpretable_features_df = interpretable_features_df.iloc[:, 1:]
+    interpretable_feature_lst = list(interpretable_features_df.columns)
+    interpretable_scaled_features_np = MinMaxScaler().fit_transform(interpretable_features_df.values)
+
+    print('interpretable features metadata: {}'.format(interpretable_scaled_features_np.shape))
+    # print('interpretable features used: {}'.format(interpretable_feature_lst))
+    
+    # get individual interpretable features
+    gender_feat_np = interpretable_scaled_features_np[:, 0:3].copy()
+    supersense_feat_np = interpretable_scaled_features_np[:, 3:48].copy()
+    genre_feat_np = interpretable_scaled_features_np[:, 48:64].copy()
+    panel_ratio_feat_np = interpretable_scaled_features_np[:, 64:65].copy()
+    
+    return (interpretable_scaled_features_np, interpretable_feature_lst, gender_feat_np, supersense_feat_np, genre_feat_np, panel_ratio_feat_np)
+
 
