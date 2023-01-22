@@ -32,6 +32,7 @@ def load_book_metadata():
                 row["comic_no"],
                 row["Book Title"],
                 row["genre"],
+                row["Year"],
             ]
             counter += 1
 
@@ -69,24 +70,29 @@ def load_all_coarse_features():
 
 
 def load_all_interpretable_features():
-  
+
     with open(cst.STORY_PACE_FEATURE_FILEPATH, "rb") as handle:
         pace_of_story_info_feature_dict = pickle.load(handle)
 
-    panel_ratio_np = np.array(pace_of_story_info_feature_dict['panel_ratio_per_book'][:165])
-    panel_ratio_np = (panel_ratio_np - np.min(panel_ratio_np) + 1e-6)/(np.max(panel_ratio_np) + 1e-6 - np.min(panel_ratio_np))
+    panel_ratio_np = np.array(
+        pace_of_story_info_feature_dict["panel_ratio_per_book"][:165]
+    )
+    panel_ratio_np = (panel_ratio_np - np.min(panel_ratio_np) + 1e-6) / (
+        np.max(panel_ratio_np) + 1e-6 - np.min(panel_ratio_np)
+    )
     print(panel_ratio_np.shape)
     panel_ratio_lst = panel_ratio_np.tolist()
 
     interpretable_features_df = pd.read_csv(cst.INTERPRETABLE_FEATURES_FILEPATH)
-    interpretable_features_df['panel_ratio'] = panel_ratio_lst
+    interpretable_features_df["panel_ratio"] = panel_ratio_lst
     interpretable_features_df = interpretable_features_df.iloc[:165, 2:]
     interpretable_feature_lst = list(interpretable_features_df.columns)
     interpretable_features_np = interpretable_features_df.to_numpy()
 
-    interpretable_scaled_features_np = MinMaxScaler().fit_transform(interpretable_features_df.values)
+    interpretable_scaled_features_np = MinMaxScaler().fit_transform(
+        interpretable_features_df.values
+    )
 
-    
     return (
         interpretable_scaled_features_np,
         interpretable_feature_lst,
