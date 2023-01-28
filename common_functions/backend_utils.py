@@ -16,11 +16,16 @@ def cosine_similarity(u: np.array, v: np.array):
     # print(np.linalg.norm(u, axis=2).shape, np.linalg.norm(v, axis=1).shape)
     # print()
     d = np.linalg.norm(u, axis=2) * np.linalg.norm(v, axis=1)
-    return n / d
+    return n / (d+1e-6)
 
 
 def l2_similarity(u: np.array, v: np.array):
     d = np.linalg.norm(u - v, axis=1)
+    return d
+
+
+def l1_similarity(u: np.array, v: np.array):
+    d = np.linalg.norm(u - v, ord=1,axis=1)
     return d
 
 
