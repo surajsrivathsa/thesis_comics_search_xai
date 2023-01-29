@@ -157,7 +157,7 @@ def adapt_facet_weights_from_previous_timestep_click_info(
         X=features_np,
         y=labels_np,
         stddev_weight=0.5,
-        feature_col_labels_lst=["gender", "supersense", "genre", "panel_ratio"],
+        feature_col_labels_lst=["gender", "supersense", "genre_comb", "panel_ratio"],
     )
 
     return (

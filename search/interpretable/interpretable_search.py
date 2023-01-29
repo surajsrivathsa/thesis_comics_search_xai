@@ -228,7 +228,7 @@ def adaptive_rerank_coarse_search_results(
         gender_cosine_similarity * normalized_feature_importance_dict["gender"]
         + supersense_cosine_similarity
         * normalized_feature_importance_dict["supersense"]
-        + genre_cosine_similarity * normalized_feature_importance_dict["genre"]
+        + genre_cosine_similarity * normalized_feature_importance_dict["genre_comb"]
         + panel_ratio_cosine_similarity
         * normalized_feature_importance_dict["panel_ratio"]
     )
