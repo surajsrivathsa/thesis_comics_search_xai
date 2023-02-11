@@ -34,11 +34,16 @@ app.add_middleware(
 
 
 class Book(BaseModel):
-    id: Optional[int] = None
+    id: int
     comic_no: int
     book_title: str
     genre: str
-    year: int
+    year: str
+    clicked: Optional[float] = 0.0
+
+
+class BookList(BaseModel):
+    clicked_book_lst: List[Book]
 
 
 @app.get("/fake_book/{b_id}", status_code=200)
@@ -101,11 +106,79 @@ def create_fake_clicks_for_previous_timestep_data(
     )
     coarse_filtered_book_df["clicked"] = 0.0
     coarse_filtered_book_df.loc[clicked_books_idx_lst, "clicked"] = 1.0
-    
+
     clicked_book_lst = (
-        coarse_filtered_book_df[["comic_no", "clicked"]].iloc[:20, :].copy().fillna("").to_dict("records")
+        coarse_filtered_book_df[["comic_no", "clicked"]]
+        .iloc[:20, :]
+        .copy()
+        .fillna("")
+        .to_dict("records")
     )
     return clicked_book_lst
+
+
+def create_real_clicks_for_previous_timestamp_data(clicked_book_lst: List):
+    clicked_book_dict_lst = [
+        {"comic_no": obj.comic_no, "clicked": obj.clicked} for obj in clicked_book_lst
+    ]
+    return clicked_book_dict_lst
+
+
+@app.post("/book_search", status_code=200)
+async def search_with_real_clicks(
+    cbl: BookList,
+    b_id: int = Query(...),
+    generate_fake_clicks: bool = Query(default=True),
+):
+    # print(cbl.clicked_book_lst)
+    # print(b_id, generate_fake_clicks)
+    # b_id: int, clicksinfo_dict: dict, generate_fake_clicks=True
+    (
+        coarse_filtered_book_new_lst,
+        coarse_filtered_book_df,
+    ) = cs_utils.perform_coarse_search(b_id=b_id)
+
+    if generate_fake_clicks:
+        clicksinfo_dict = create_fake_clicks_for_previous_timestep_data(
+            coarse_filtered_book_df=coarse_filtered_book_df
+        )
+        # print(clicksinfo_dict)
+    else:
+        clicksinfo_dict = create_real_clicks_for_previous_timestamp_data(
+            cbl.clicked_book_lst
+        )  # [{"comic_no": "1", "clicked": 1.0}, {"comic_no": "3", "clicked": 0.0}]
+
+    (
+        feature_importance_dict,
+        normalized_feature_importance_dict,
+        clf_coef,
+    ) = rrr.adapt_facet_weights_from_previous_timestep_click_info(
+        previous_click_info_lst=clicksinfo_dict, query_book_id=b_id
+    )
+
+    (
+        interpretable_filtered_book_lst,
+        interpretable_filtered_book_df,
+    ) = is_utils.adaptive_rerank_coarse_search_results(
+        normalized_feature_importance_dict=normalized_feature_importance_dict,
+        query_comic_book_id=b_id,
+        coarse_search_results_lst=coarse_filtered_book_new_lst,
+        top_k=20,
+    )
+
+    # add facet weights to UI
+    interpretable_filtered_book_new_lst = [
+        d | normalized_feature_importance_dict for d in interpretable_filtered_book_lst
+    ]
+    print(interpretable_filtered_book_lst[0] | normalized_feature_importance_dict)
+    print(
+        feature_importance_dict, clf_coef,
+    )
+    interpretable_filtered_book_new_lst = [
+        interpretable_filtered_book_lst.copy(),
+        normalized_feature_importance_dict,
+    ]
+    return interpretable_filtered_book_new_lst
 
 
 @app.get("/book", status_code=200)
@@ -152,6 +225,10 @@ def search_all(
     print(
         feature_importance_dict, clf_coef,
     )
+    interpretable_filtered_book_new_lst = [
+        interpretable_filtered_book_lst.copy(),
+        normalized_feature_importance_dict,
+    ]
     return interpretable_filtered_book_new_lst
 
 

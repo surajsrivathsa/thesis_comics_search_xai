@@ -67,6 +67,14 @@ def load_all_coarse_features():
     text_tfidf_np = text_tfidf_df.to_numpy()
     text_tfidf_np = text_tfidf_np[:, 1:]
 
+    comic_cover_img_df = pd.read_csv(cst.COMIC_COVER_IMG_FILEPATH)
+    comic_cover_img_np = comic_cover_img_df.to_numpy()
+    comic_cover_img_np = comic_cover_img_np[:, 1:]
+
+    comic_cover_txt_df = pd.read_csv(cst.COMIC_COVER_TXT_FILEPATH)
+    comic_cover_txt_np = comic_cover_txt_df.to_numpy()
+    comic_cover_txt_np = comic_cover_txt_np[:, 1:]
+
     return (
         cld_tfidf_df,
         cld_tfidf_np,
@@ -76,6 +84,10 @@ def load_all_coarse_features():
         hog_tfidf_np,
         text_tfidf_df,
         text_tfidf_np,
+        comic_cover_img_df,
+        comic_cover_img_np,
+        comic_cover_txt_df,
+        comic_cover_txt_np
     )
 
 

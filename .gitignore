@@ -131,13 +131,13 @@ dmypy.json
 .pyre/
 
 
-*.pickle
+
 *.txt
 *.ipynb
-*.pkl
+
 *.jpg
 *.png
 *.json
 *.xlsx
-*.csv
-
+prototypes/*
+data/*

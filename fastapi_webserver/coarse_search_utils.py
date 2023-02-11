@@ -16,7 +16,14 @@ comic_book_metadata_df.fillna("", inplace=True)
 
 def perform_coarse_search(
     b_id: int,
-    feature_weight_dict={"cld": 0.1, "edh": 0.1, "hog": 0.1, "text": 1.7,},
+    feature_weight_dict={
+        "cld": 0.1,
+        "edh": 0.1,
+        "hog": 0.1,
+        "text": 1.0,
+        "comic_img": 1.0,
+        "comic_txt": 1.0,
+    },
     top_n=200,
 ):
 

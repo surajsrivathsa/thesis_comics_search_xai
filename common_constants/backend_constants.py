@@ -14,6 +14,8 @@ TEXT_TF_IDF_FILEPATH = os.path.join(parent_dir, 'features', 'coarse', "text_tf_i
 CLD_TF_IDF_FILEPATH = os.path.join(parent_dir, 'features', 'coarse', "cld_tf_idf_feat.csv")
 EDH_TF_IDF_FILEPATH = os.path.join(parent_dir, 'features', 'coarse', "edh_tf_idf_feat.csv")
 HOG_TF_IDF_FILEPATH = os.path.join(parent_dir, 'features', 'coarse', "hog_tf_idf_feat.csv")
+COMIC_COVER_IMG_FILEPATH = os.path.join(parent_dir, 'features', 'coarse', "comic_book_cover_img_feat.csv")
+COMIC_COVER_TXT_FILEPATH = os.path.join(parent_dir, 'features', 'coarse', "comic_book_cover_txt_feat.csv")
 
 ## information about interpretable features
 INTERPRETABLE_FEATURES_FILEPATH = os.path.join(parent_dir, 'features', 'interpretable', "all_features_combined.csv")

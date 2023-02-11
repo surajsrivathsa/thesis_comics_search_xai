@@ -19,6 +19,10 @@ import common_constants.backend_constants as cst
     hog_tfidf_np,
     text_tfidf_df,
     text_tfidf_np,
+    comic_cover_img_df,
+    comic_cover_img_np,
+    comic_cover_txt_df,
+    comic_cover_txt_np,
 ) = utils.load_all_coarse_features()
 book_metadata_dict, comic_book_metadata_df = utils.load_book_metadata()
 
@@ -86,12 +90,24 @@ def comics_coarse_search(
         text_tfidf_np[:, :], text_tfidf_np[max(query_book_id, 0) : query_book_id + 1, :]
     )
 
+    comic_cover_img_cosine_similarity = utils.cosine_similarity(
+        comic_cover_img_np[:, :],
+        comic_cover_img_np[max(query_book_id, 0) : query_book_id + 1, :],
+    )
+
+    comic_cover_txt_cosine_similarity = utils.cosine_similarity(
+        comic_cover_txt_np[:, :],
+        comic_cover_txt_np[max(query_book_id, 0) : query_book_id + 1, :],
+    )
+
     # combine similarity and weigh them
     combined_results_similarity = (
         cld_cosine_similarity * feature_weight_dict["cld"]
         + edh_cosine_similarity * feature_weight_dict["edh"]
         + hog_cosine_similarity * feature_weight_dict["hog"]
         + text_cosine_similarity * feature_weight_dict["text"]
+        + comic_cover_img_cosine_similarity * feature_weight_dict["comic_img"]
+        + comic_cover_txt_cosine_similarity * feature_weight_dict["comic_txt"]
     )
 
     # find top book indices according to combined similarity
@@ -122,7 +138,10 @@ if __name__ == "__main__":
         "edh": 0.1,
         "hog": 0.1,
         "text": 1.7,
-    }  # {'cld': 0.4, 'edh': 0.4, 'hog': 0.4, 'text': 0.8}
+        "comic_img": 1.0,
+        "comic_txt": 1.0,
+    }
+    # {'cld': 0.4, 'edh': 0.4, 'hog': 0.4, 'text': 0.8}
     # print(book_metadata_dict)
     print("query book info: {}".format(book_metadata_dict[query_book_comic_id]))
 
