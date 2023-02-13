@@ -25,6 +25,8 @@ clf_pipe = Pipeline(
     supersense_feat_np,
     genre_feat_np,
     panel_ratio_feat_np,
+    comic_cover_img_np,
+    comic_cover_txt_np
 ) = utils.load_all_interpretable_features()
 book_metadata_dict, comic_book_metadata_df = utils.load_book_metadata()
 print(interpretable_scaled_features_np.shape)
@@ -140,11 +142,23 @@ def adapt_facet_weights_from_previous_timestep_click_info(
         panel_ratio_feat_np[max(query_book_id, 0) : query_book_id + 1, :],
     )
 
-    features_np = np.zeros((len(selected_idx), 4))
+    comic_cover_img_l1_feat_np = utils.l1_similarity(
+        comic_cover_img_np[selected_idx, :],
+        comic_cover_img_np[max(query_book_id, 0) : query_book_id + 1, :],
+    )
+
+    comic_cover_txt_l1_feat_np = utils.l1_similarity(
+        comic_cover_txt_np[selected_idx, :],
+        comic_cover_txt_np[max(query_book_id, 0) : query_book_id + 1, :],
+    )
+
+    features_np = np.zeros((len(selected_idx), 6))
     features_np[:, 0] = gender_l1_feat_np
     features_np[:, 1] = supersense_l1_feat_np
     features_np[:, 2] = genre_l1_feat_np
     features_np[:, 3] = panel_l1_feat_np
+    features_np[:, 4] = comic_cover_img_l1_feat_np
+    features_np[:, 5] = comic_cover_txt_l1_feat_np
 
     clf_pipe.fit(features_np, labels_np.ravel())
     # print(clf_pipe['clf'].get_params())
@@ -157,7 +171,7 @@ def adapt_facet_weights_from_previous_timestep_click_info(
         X=features_np,
         y=labels_np,
         stddev_weight=0.5,
-        feature_col_labels_lst=["gender", "supersense", "genre_comb", "panel_ratio"],
+        feature_col_labels_lst=["gender", "supersense", "genre_comb", "panel_ratio", "comic_cover_img", "comic_cover_txt"],
     )
 
     return (

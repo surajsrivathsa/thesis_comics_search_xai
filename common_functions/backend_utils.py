@@ -125,9 +125,7 @@ def load_all_interpretable_features():
     interpretable_features_df = pd.read_csv(cst.INTERPRETABLE_FEATURES_FILEPATH)
     interpretable_features_df = interpretable_features_df.iloc[:, 1:]
     interpretable_feature_lst = list(interpretable_features_df.columns)
-    interpretable_scaled_features_np = MinMaxScaler().fit_transform(
-        interpretable_features_df.values
-    )
+    interpretable_scaled_features_np = interpretable_features_df.to_numpy() # MinMaxScaler().fit_transform(interpretable_features_df.values)
 
     print(
         "interpretable features metadata: {}".format(
@@ -142,6 +140,15 @@ def load_all_interpretable_features():
     genre_feat_np = interpretable_scaled_features_np[:, 48:64].copy()
     panel_ratio_feat_np = interpretable_scaled_features_np[:, 64:65].copy()
 
+    comic_cover_img_df = pd.read_csv(cst.COMIC_COVER_IMG_FILEPATH)
+    comic_cover_img_np = comic_cover_img_df.to_numpy()
+    comic_cover_img_np = comic_cover_img_np[:, 1:]
+
+    comic_cover_txt_df = pd.read_csv(cst.COMIC_COVER_TXT_FILEPATH)
+    comic_cover_txt_np = comic_cover_txt_df.to_numpy()
+    comic_cover_txt_np = comic_cover_txt_np[:, 1:]
+
+
     return (
         interpretable_scaled_features_np,
         interpretable_feature_lst,
@@ -149,5 +156,7 @@ def load_all_interpretable_features():
         supersense_feat_np,
         genre_feat_np,
         panel_ratio_feat_np,
+        comic_cover_img_np,
+        comic_cover_txt_np
     )
 

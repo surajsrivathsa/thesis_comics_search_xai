@@ -29,6 +29,8 @@ import common_constants.backend_constants as cst
     supersense_feat_np,
     genre_feat_np,
     panel_ratio_feat_np,
+    comic_cover_img_np,
+    comic_cover_txt_np
 ) = utils.load_all_interpretable_features()
 book_metadata_dict, comic_book_metadata_df = utils.load_book_metadata()
 print(interpretable_scaled_features_np.shape)
@@ -46,7 +48,7 @@ def get_top_n_matching_book_info(
     sim_score_top_n_squeezed_np = np.squeeze(sim_score_top_n_np)
     list_of_records = []
     query_comic_no, query_book_title, query_genre, year = comic_info_dict[query_book_id]
-
+    # print(idx_top_n_np, sim_score_top_n_np)
     for i in range(1, print_n):
 
         book_idx = idx_top_n_np[i]
@@ -222,21 +224,33 @@ def adaptive_rerank_coarse_search_results(
         panel_ratio_feat_np[max(query_book_id, 0) : query_book_id + 1, :],
     )
 
+    comic_cover_img_cosine_similarity = utils.cosine_similarity(
+        comic_cover_img_np[coarse_filtered_book_idx_lst, :],
+        comic_cover_img_np[max(query_book_id, 0) : query_book_id + 1, :],
+    )
+
+    comic_cover_txt_cosine_similarity = utils.cosine_similarity(
+        comic_cover_txt_np[coarse_filtered_book_idx_lst, :],
+        comic_cover_txt_np[max(query_book_id, 0) : query_book_id + 1, :],
+    )
+
     # print(gender_cosine_similarity.shape,supersense_cosine_similarity.shape, genre_cosine_similarity.shape,  panel_ratio_cosine_similarity.shape)
     # combine similarity and weigh them
     combined_results_similarity = (
         gender_cosine_similarity * normalized_feature_importance_dict["gender"]
-        + supersense_cosine_similarity
-        * normalized_feature_importance_dict["supersense"]
+        + supersense_cosine_similarity * normalized_feature_importance_dict["supersense"]
         + genre_cosine_similarity * normalized_feature_importance_dict["genre_comb"]
-        + panel_ratio_cosine_similarity
-        * normalized_feature_importance_dict["panel_ratio"]
+        + panel_ratio_cosine_similarity * normalized_feature_importance_dict["panel_ratio"]
+        + comic_cover_img_cosine_similarity * normalized_feature_importance_dict["comic_cover_img"]
+        + comic_cover_txt_cosine_similarity * normalized_feature_importance_dict["comic_cover_txt"]
     )
     # print(combined_results_similarity.shape)
     # find top book indices according to combined similarity
-    combined_results_indices = np.argsort(
+    combined_results_indices_idx = np.argsort(
         np.squeeze(-combined_results_similarity), axis=0
     )
+
+    combined_results_indices = np.asarray([ coarse_filtered_book_idx_lst[ranked_idx] for ranked_idx in list(combined_results_indices_idx)])
 
     # sort indices by their combined similarity score to pick top k
     combined_sorted_result_indices = np.sort(-combined_results_similarity, axis=0)
