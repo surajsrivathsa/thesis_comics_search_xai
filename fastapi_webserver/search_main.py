@@ -165,12 +165,14 @@ async def search_with_real_clicks(
         normalized_feature_importance_dict=normalized_feature_importance_dict,
         query_comic_book_id=b_id,
         coarse_search_results_lst=coarse_filtered_book_new_lst,
-        top_k=190,
+        top_k=20,
     )
 
     # add facet weights to UI
     interpretable_filtered_book_new_lst = [
-        d | normalized_feature_importance_dict for idx, d in enumerate(interpretable_filtered_book_lst) if idx <= 20
+        d | normalized_feature_importance_dict
+        for idx, d in enumerate(interpretable_filtered_book_lst)
+        if idx <= 20
     ]
     print(interpretable_filtered_book_lst[0] | normalized_feature_importance_dict)
     print(
@@ -181,10 +183,10 @@ async def search_with_real_clicks(
         normalized_feature_importance_dict,
     ]
 
-    print(interpretable_filtered_book_df.head(50))
-    print()
-    print(' ============= ============= ============ ')
-    print(print(interpretable_filtered_book_df.tail(50)))
+    # print(interpretable_filtered_book_df.head(50))
+    # print()
+    # print(' ============= ============= ============ ')
+    # print(print(interpretable_filtered_book_df.tail(50)))
     return interpretable_filtered_book_new_lst
 
 

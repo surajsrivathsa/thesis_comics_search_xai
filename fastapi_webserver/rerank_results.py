@@ -26,7 +26,7 @@ clf_pipe = Pipeline(
     genre_feat_np,
     panel_ratio_feat_np,
     comic_cover_img_np,
-    comic_cover_txt_np
+    comic_cover_txt_np,
 ) = utils.load_all_interpretable_features()
 book_metadata_dict, comic_book_metadata_df = utils.load_book_metadata()
 print(interpretable_scaled_features_np.shape)
@@ -105,7 +105,7 @@ def permutation_based_feature_importance(
         for feat_name, norm_mn in zip(feature_nm_lst, normalized_feature_importance_lst)
     }
 
-    print(feature_importance_dict)
+    # print(feature_importance_dict)
 
     return (feature_importance_dict, normalized_feature_importance_dict)
 
@@ -171,7 +171,14 @@ def adapt_facet_weights_from_previous_timestep_click_info(
         X=features_np,
         y=labels_np,
         stddev_weight=0.5,
-        feature_col_labels_lst=["gender", "supersense", "genre_comb", "panel_ratio", "comic_cover_img", "comic_cover_txt"],
+        feature_col_labels_lst=[
+            "gender",
+            "supersense",
+            "genre_comb",
+            "panel_ratio",
+            "comic_cover_img",
+            "comic_cover_txt",
+        ],
     )
 
     return (
