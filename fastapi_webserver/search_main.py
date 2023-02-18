@@ -13,6 +13,7 @@ from search.coarse import coarse_search
 import coarse_search_utils as cs_utils
 import rerank_results as rrr
 import interpretable_search_utils as is_utils
+import local_explanation_utils as le_utils
 
 
 book_metadata_dict, comic_book_metadata_df = utils.load_book_metadata()
@@ -239,6 +240,39 @@ def search_all(
         normalized_feature_importance_dict,
     ]
     return interpretable_filtered_book_new_lst
+
+
+@app.post("/local_explanation", status_code=200)
+async def get_local_explanation(selected_book_lst: dict[str, list]):
+
+    print(selected_book_lst)
+    selected_book_id_1 = selected_book_lst["selected_book_lst"][0]["comic_no"]
+    selected_book_id_2 = selected_book_lst["selected_book_lst"][1]["comic_no"]
+    print(selected_book_id_1, selected_book_id_2)
+    story_pace_book_1 = le_utils.fetch_story_pace(selected_book_id_1)
+    story_pace_book_2 = le_utils.fetch_story_pace(selected_book_id_2)
+
+    w5_h1_facets_book_1 = le_utils.fetch_5w_1h_facets(selected_book_id_1)
+    w5_h1_facets_book_2 = le_utils.fetch_5w_1h_facets(selected_book_id_2)
+
+    lrp_book_1 = le_utils.fetch_lrp_keywords(selected_book_id_1)
+    lrp_book_2 = le_utils.fetch_lrp_keywords(selected_book_id_2)
+    print(
+        "{} | {} | {} | {} | {} | {}".format(
+            story_pace_book_1,
+            story_pace_book_2,
+            w5_h1_facets_book_1,
+            w5_h1_facets_book_2,
+            lrp_book_1,
+            lrp_book_2,
+        )
+    )
+
+    return {
+        "story_pace": [story_pace_book_1, story_pace_book_2],
+        "w5_h1_facets": [w5_h1_facets_book_1, w5_h1_facets_book_2],
+        "lrp_genre": [lrp_book_1, lrp_book_2],
+    }
 
 
 if __name__ == "__main__":

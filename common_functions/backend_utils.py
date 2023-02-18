@@ -16,7 +16,7 @@ def cosine_similarity(u: np.array, v: np.array):
     # print(np.linalg.norm(u, axis=2).shape, np.linalg.norm(v, axis=1).shape)
     # print()
     d = np.linalg.norm(u, axis=2) * np.linalg.norm(v, axis=1)
-    return n / (d+1e-6)
+    return n / (d + 1e-6)
 
 
 def l2_similarity(u: np.array, v: np.array):
@@ -25,7 +25,7 @@ def l2_similarity(u: np.array, v: np.array):
 
 
 def l1_similarity(u: np.array, v: np.array):
-    d = np.linalg.norm(u - v, ord=1,axis=1)
+    d = np.linalg.norm(u - v, ord=1, axis=1)
     return d
 
 
@@ -87,7 +87,7 @@ def load_all_coarse_features():
         comic_cover_img_df,
         comic_cover_img_np,
         comic_cover_txt_df,
-        comic_cover_txt_np
+        comic_cover_txt_np,
     )
 
 
@@ -125,7 +125,9 @@ def load_all_interpretable_features():
     interpretable_features_df = pd.read_csv(cst.INTERPRETABLE_FEATURES_FILEPATH)
     interpretable_features_df = interpretable_features_df.iloc[:, 1:]
     interpretable_feature_lst = list(interpretable_features_df.columns)
-    interpretable_scaled_features_np = interpretable_features_df.to_numpy() # MinMaxScaler().fit_transform(interpretable_features_df.values)
+    interpretable_scaled_features_np = (
+        interpretable_features_df.to_numpy()
+    )  # MinMaxScaler().fit_transform(interpretable_features_df.values)
 
     print(
         "interpretable features metadata: {}".format(
@@ -148,7 +150,6 @@ def load_all_interpretable_features():
     comic_cover_txt_np = comic_cover_txt_df.to_numpy()
     comic_cover_txt_np = comic_cover_txt_np[:, 1:]
 
-
     return (
         interpretable_scaled_features_np,
         interpretable_feature_lst,
@@ -157,6 +158,13 @@ def load_all_interpretable_features():
         genre_feat_np,
         panel_ratio_feat_np,
         comic_cover_img_np,
-        comic_cover_txt_np
+        comic_cover_txt_np,
     )
 
+
+def load_local_explanation_story_pace():
+
+    with open(cst.STORY_PACE_FEATURE_FILEPATH, "rb") as handle:
+        story_pace_feature_dict = pickle.load(handle)
+
+    return story_pace_feature_dict
