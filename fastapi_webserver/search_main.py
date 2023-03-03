@@ -47,6 +47,14 @@ class BookList(BaseModel):
     clicked_book_lst: List[Book]
 
 
+class SearchBarQuery(BaseModel):
+    id: int
+    comic_no: int
+    book_title: str
+    text: str
+    type: str
+
+
 @app.get("/fake_book/{b_id}", status_code=200)
 def get_fake_coarse_results(b_id: int):
     coarse_filtered_book_df = comic_book_metadata_df[
@@ -140,6 +148,11 @@ async def search_with_real_clicks(
     ) = cs_utils.perform_coarse_search(b_id=b_id)
 
     print(coarse_filtered_book_df.head(100))
+    print(
+        "generate_fake_clicks: {} | {}".format(
+            generate_fake_clicks, type(generate_fake_clicks)
+        )
+    )
     if generate_fake_clicks:
         clicksinfo_dict = create_fake_clicks_for_previous_timestep_data(
             coarse_filtered_book_df=coarse_filtered_book_df
@@ -183,11 +196,59 @@ async def search_with_real_clicks(
         interpretable_filtered_book_lst.copy(),
         normalized_feature_importance_dict,
     ]
+    return interpretable_filtered_book_new_lst
 
-    # print(interpretable_filtered_book_df.head(50))
-    # print()
-    # print(' ============= ============= ============ ')
-    # print(print(interpretable_filtered_book_df.tail(50)))
+
+@app.post("/book_search_with_searchbar_inputs", status_code=200)
+async def search_with_searchbar_inputs(searchbar_query: SearchBarQuery,):
+    print("searchbar_query : {}".format(searchbar_query))
+
+    if (
+        searchbar_query.type == "book"
+        or searchbar_query.type == "character"
+        or searchbar_query.type == "genre"
+    ):
+        b_id = searchbar_query.comic_no
+        (
+            coarse_filtered_book_new_lst,
+            coarse_filtered_book_df,
+        ) = cs_utils.perform_coarse_search(b_id=b_id)
+    else:
+        b_id = 1
+        (
+            coarse_filtered_book_new_lst,
+            coarse_filtered_book_df,
+        ) = cs_utils.perform_coarse_search(b_id=b_id)
+
+    normalized_feature_importance_dict = {
+        "gender": 1.0,
+        "supersense": 1.0,
+        "genre_comb": 1.0,
+        "panel_ratio": 1.0,
+        "comic_cover_img": 1.0,
+        "comic_cover_txt": 1.0,
+    }
+    (
+        interpretable_filtered_book_lst,
+        interpretable_filtered_book_df,
+    ) = is_utils.adaptive_rerank_coarse_search_results(
+        normalized_feature_importance_dict=normalized_feature_importance_dict,
+        query_comic_book_id=b_id,
+        coarse_search_results_lst=coarse_filtered_book_new_lst,
+        top_k=20,
+    )
+
+    # add facet weights to UI
+    interpretable_filtered_book_new_lst = [
+        d | normalized_feature_importance_dict
+        for idx, d in enumerate(interpretable_filtered_book_lst)
+        if idx <= 20
+    ]
+    print(interpretable_filtered_book_lst[0] | normalized_feature_importance_dict)
+    interpretable_filtered_book_new_lst = [
+        interpretable_filtered_book_lst.copy(),
+        normalized_feature_importance_dict,
+    ]
     return interpretable_filtered_book_new_lst
 
 
