@@ -168,3 +168,22 @@ def load_local_explanation_story_pace():
         story_pace_feature_dict = pickle.load(handle)
 
     return story_pace_feature_dict
+
+
+def load_local_explanation_book_cover():
+
+    with open(cst.BOOK_COVER_PROMPT_FILEPATH, 'rb') as handle:
+        book_cover_prompt_dict = pickle.load(handle)
+    
+    return book_cover_prompt_dict
+
+
+def load_local_explanation_w5_h1_facets():
+
+    with open(cst.W5_H1_FACETS_FILEPATH, 'rb') as handle:
+        all_dict = pickle.load(handle)
+        w5_h1_dict = all_dict["facets_all_dict"]
+    
+    return w5_h1_dict
+
+

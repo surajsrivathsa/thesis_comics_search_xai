@@ -20,4 +20,5 @@ COMIC_COVER_TXT_FILEPATH = os.path.join(parent_dir, 'features', 'coarse', "comic
 ## information about interpretable features
 INTERPRETABLE_FEATURES_FILEPATH = os.path.join(parent_dir, 'features', 'interpretable', "all_features_combined.csv")
 STORY_PACE_FEATURE_FILEPATH = os.path.join(parent_dir, 'features', 'interpretable', "feature_storypace_all.pkl")
-
+BOOK_COVER_PROMPT_FILEPATH = os.path.join(parent_dir,  'features', 'interpretable', "comic_book_cover_prompt_dict.pickle")
+W5_H1_FACETS_FILEPATH = os.path.join(parent_dir,  'features', 'interpretable', "facets_all_dict.pickle")
