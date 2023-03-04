@@ -1,5 +1,6 @@
 import os, sys
 import pandas as pd, numpy as np
+import ast
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -46,7 +47,26 @@ def fetch_5w_1h_facets(book_id: int):
     }
     if book_id in w5_h1_facets_dict:
         # print(w5_h1_facets_dict[book_id], type(w5_h1_facets_dict[book_id]))
-        return w5_h1_facets_dict[book_id]
+        book_facet_obj = w5_h1_facets_dict[book_id]
+        if isinstance(book_facet_obj, dict):
+            return book_facet_obj
+        elif (
+            "{" in book_facet_obj
+            and "}" in book_facet_obj
+            and isinstance(book_facet_obj, str)
+        ):
+            book_facet_obj = book_facet_obj.replace("JSON Response:", "").strip()
+            brackets_start_idx = book_facet_obj.find("{")
+            brackets_end_idx = book_facet_obj.find("}")
+            book_facet_obj = book_facet_obj[brackets_start_idx : brackets_end_idx + 1]
+            book_facet_obj_dict = ast.literal_eval(book_facet_obj)
+            if isinstance(book_facet_obj_dict, dict):
+                return book_facet_obj_dict
+            else:
+                return default_facets
+        else:
+            return default_facets
+
     else:
         return default_facets
     return ""
@@ -54,7 +74,7 @@ def fetch_5w_1h_facets(book_id: int):
 
 def fetch_book_cover_keywords(book_id: int):
     if book_id in book_cover_prompt_dict:
-        #print(book_cover_prompt_dict[book_id], type(book_cover_prompt_dict[book_id]))
+        # print(book_cover_prompt_dict[book_id], type(book_cover_prompt_dict[book_id]))
         return book_cover_prompt_dict[book_id]
     else:
         return ["comic book cover"]
