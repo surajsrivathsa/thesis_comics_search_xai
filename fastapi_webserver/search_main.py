@@ -40,11 +40,11 @@ class Book(BaseModel):
     book_title: str
     genre: str
     year: str
-    clicked: Optional[float] = 0.0
+    interested: Optional[float] = 0.0
 
 
 class BookList(BaseModel):
-    clicked_book_lst: List[Book]
+    interested_book_lst: List[Book]
 
 
 class SearchBarQuery(BaseModel):
@@ -109,28 +109,29 @@ def create_fake_clicks_for_previous_timestep_data(
 ):
 
     index_lst = [i for i in range(20)]
-    click_lst_size = random.randint(1, 10)
-    clicked_books_idx_lst = np.random.choice(
-        index_lst, size=click_lst_size, replace=False
+    interested_lst_size = random.randint(1, 10)
+    interested_books_idx_lst = np.random.choice(
+        index_lst, size=interested_lst_size, replace=False
     )
-    coarse_filtered_book_df["clicked"] = 0.0
-    coarse_filtered_book_df.loc[clicked_books_idx_lst, "clicked"] = 1.0
+    coarse_filtered_book_df["interested"] = 0.0
+    coarse_filtered_book_df.loc[interested_books_idx_lst, "interested"] = 1.0
 
-    clicked_book_lst = (
-        coarse_filtered_book_df[["comic_no", "clicked"]]
+    interested_book_lst = (
+        coarse_filtered_book_df[["comic_no", "interested"]]
         .iloc[:20, :]
         .copy()
         .fillna("")
         .to_dict("records")
     )
-    return clicked_book_lst
+    return interested_book_lst
 
 
-def create_real_clicks_for_previous_timestamp_data(clicked_book_lst: List):
-    clicked_book_dict_lst = [
-        {"comic_no": obj.comic_no, "clicked": obj.clicked} for obj in clicked_book_lst
+def create_real_clicks_for_previous_timestamp_data(interested_book_lst: List):
+    interested_book_dict_lst = [
+        {"comic_no": obj.comic_no, "interested": obj.interested}
+        for obj in interested_book_lst
     ]
-    return clicked_book_dict_lst
+    return interested_book_dict_lst
 
 
 @app.post("/book_search", status_code=200)
@@ -157,12 +158,12 @@ async def search_with_real_clicks(
         clicksinfo_dict = create_fake_clicks_for_previous_timestep_data(
             coarse_filtered_book_df=coarse_filtered_book_df
         )
-        # print(clicksinfo_dict)
+
     else:
         clicksinfo_dict = create_real_clicks_for_previous_timestamp_data(
-            cbl.clicked_book_lst
+            cbl.interested_book_lst
         )  # [{"comic_no": "1", "clicked": 1.0}, {"comic_no": "3", "clicked": 0.0}]
-
+    print("clicksinfo_dict: {}".format(clicksinfo_dict))
     (
         feature_importance_dict,
         normalized_feature_importance_dict,
@@ -183,12 +184,13 @@ async def search_with_real_clicks(
     )
 
     # add facet weights to UI
+    print(interpretable_filtered_book_lst[0] | normalized_feature_importance_dict)
     interpretable_filtered_book_new_lst = [
         d | normalized_feature_importance_dict
         for idx, d in enumerate(interpretable_filtered_book_lst)
         if idx <= 20
     ]
-    print(interpretable_filtered_book_lst[0] | normalized_feature_importance_dict)
+
     print(
         feature_importance_dict, clf_coef,
     )
@@ -196,6 +198,17 @@ async def search_with_real_clicks(
         interpretable_filtered_book_lst.copy(),
         normalized_feature_importance_dict,
     ]
+
+    print()
+    print( " +++++++++++++ ++++++++++++ ++++++++++++++ ")
+    print()
+
+    for x in interpretable_filtered_book_lst:
+        print(x)
+
+    print()
+    print( " +++++++++++++ ++++++++++++ ++++++++++++++ ")
+    print()
     return interpretable_filtered_book_new_lst
 
 

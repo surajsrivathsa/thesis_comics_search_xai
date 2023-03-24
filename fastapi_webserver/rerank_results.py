@@ -117,7 +117,7 @@ def adapt_facet_weights_from_previous_timestep_click_info(
     selected_idx = [d["comic_no"] for d in previous_click_info_lst]
     # print(selected_idx)
     previous_labels_lst = [
-        d["clicked"] for d in previous_click_info_lst
+        d["interested"] for d in previous_click_info_lst
     ]  # [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0]
     query_book_id = query_book_id  # [d["comic_no"] for d in previous_click_info_lst if d["is_query"] == 1][0]
     # print(previous_labels_lst)
