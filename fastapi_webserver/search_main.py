@@ -55,6 +55,15 @@ class SearchBarQuery(BaseModel):
     type: str
 
 
+class FacetWeight(BaseModel):
+    gender: float = 1.0
+    supersense: float = 1.0
+    genre_comb: float = 1.0
+    panel_ratio: float = 1.0
+    comic_cover_img: Optional[float] = 1.0
+    comic_cover_txt: Optional[float] = 1.0
+
+
 @app.get("/fake_book/{b_id}", status_code=200)
 def get_fake_coarse_results(b_id: int):
     coarse_filtered_book_df = comic_book_metadata_df[
@@ -139,6 +148,7 @@ async def search_with_real_clicks(
     cbl: BookList,
     b_id: int = Query(...),
     generate_fake_clicks: bool = Query(default=True),
+    input_feature_importance_dict: Optional[FacetWeight] =  FacetWeight(gender=1.0, supersense=1.0, genre_comb=1.0, panel_ratio=1.0, comic_cover_img=1.0, comic_cover_txt=1.0)
 ):
     # print(cbl.clicked_book_lst)
     # print(b_id, generate_fake_clicks)
@@ -164,12 +174,31 @@ async def search_with_real_clicks(
             cbl.interested_book_lst
         )  # [{"comic_no": "1", "clicked": 1.0}, {"comic_no": "3", "clicked": 0.0}]
     print("clicksinfo_dict: {}".format(clicksinfo_dict))
-    (
-        feature_importance_dict,
-        normalized_feature_importance_dict,
-        clf_coef,
-    ) = rrr.adapt_facet_weights_from_previous_timestep_click_info(
-        previous_click_info_lst=clicksinfo_dict, query_book_id=b_id
+
+    if not generate_fake_clicks:
+        (
+            feature_importance_dict,
+            normalized_feature_importance_dict,
+            clf_coef,
+        ) = rrr.adapt_facet_weights_from_previous_timestep_click_info(
+            previous_click_info_lst=clicksinfo_dict, query_book_id=b_id
+        )
+    else:
+        normalized_feature_importance_dict = {
+            "gender": input_feature_importance_dict.gender,
+            "supersense": input_feature_importance_dict.supersense,
+            "genre_comb": input_feature_importance_dict.genre_comb,
+            "panel_ratio": input_feature_importance_dict.panel_ratio,
+            "comic_cover_img": input_feature_importance_dict.comic_cover_img,
+            "comic_cover_txt": input_feature_importance_dict.comic_cover_txt,
+        }
+        clf_coef = None
+        feature_importance_dict = normalized_feature_importance_dict
+
+    print(
+        "normalized_feature_importance_dict: {}".format(
+            normalized_feature_importance_dict
+        )
     )
 
     # new_normalized_feature_importance_dict = {"gender": 1.0, "supersense": 1.0, "genre_comb": 1.0, "panel_ratio": 1.0, "comic_cover_img": 1.0, "comic_cover_txt": 1.0}
@@ -200,20 +229,23 @@ async def search_with_real_clicks(
     ]
 
     print()
-    print( " +++++++++++++ ++++++++++++ ++++++++++++++ ")
+    print(" +++++++++++++ ++++++++++++ ++++++++++++++ ")
     print()
 
     for x in interpretable_filtered_book_lst:
         print(x)
 
     print()
-    print( " +++++++++++++ ++++++++++++ ++++++++++++++ ")
+    print(" +++++++++++++ ++++++++++++ ++++++++++++++ ")
     print()
     return interpretable_filtered_book_new_lst
 
 
 @app.post("/book_search_with_searchbar_inputs", status_code=200)
-async def search_with_searchbar_inputs(searchbar_query: SearchBarQuery,):
+async def search_with_searchbar_inputs(
+    searchbar_query: SearchBarQuery,
+    input_feature_importance_dict: Optional[FacetWeight] = FacetWeight(gender=1.0, supersense=1.0, genre_comb=1.0, panel_ratio=1.0, comic_cover_img=1.0, comic_cover_txt=1.0)
+):
     print("searchbar_query : {}".format(searchbar_query))
 
     if (
@@ -234,13 +266,19 @@ async def search_with_searchbar_inputs(searchbar_query: SearchBarQuery,):
         ) = cs_utils.perform_coarse_search(b_id=b_id)
 
     normalized_feature_importance_dict = {
-        "gender": 1.0,
-        "supersense": 1.0,
-        "genre_comb": 1.0,
-        "panel_ratio": 1.0,
-        "comic_cover_img": 1.0,
-        "comic_cover_txt": 1.0,
+        "gender": input_feature_importance_dict.gender,
+        "supersense": input_feature_importance_dict.supersense,
+        "genre_comb": input_feature_importance_dict.genre_comb,
+        "panel_ratio": input_feature_importance_dict.panel_ratio,
+        "comic_cover_img": input_feature_importance_dict.comic_cover_img,
+        "comic_cover_txt": input_feature_importance_dict.comic_cover_txt,
     }
+
+    print(
+        "normalized_feature_importance_dict: {}".format(
+            normalized_feature_importance_dict
+        )
+    )
     (
         interpretable_filtered_book_lst,
         interpretable_filtered_book_df,
