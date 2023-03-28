@@ -10,11 +10,22 @@ sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 import common_functions.backend_utils as utils
 from search.coarse import coarse_search
+
+# import explain_relevance_feedback as erf
+
+print("returned to main")
 import coarse_search_utils as cs_utils
+
+print("coarse search")
 import rerank_results as rrr
+
+print("rrr")
 import interpretable_search_utils as is_utils
+
+print("is_utils")
 import local_explanation_utils as le_utils
 
+print("Server loaded")
 
 book_metadata_dict, comic_book_metadata_df = utils.load_book_metadata()
 comic_book_metadata_df.rename(
@@ -148,7 +159,14 @@ async def search_with_real_clicks(
     cbl: BookList,
     b_id: int = Query(...),
     generate_fake_clicks: bool = Query(default=True),
-    input_feature_importance_dict: Optional[FacetWeight] =  FacetWeight(gender=1.0, supersense=1.0, genre_comb=1.0, panel_ratio=1.0, comic_cover_img=1.0, comic_cover_txt=1.0)
+    input_feature_importance_dict: Optional[FacetWeight] = FacetWeight(
+        gender=1.0,
+        supersense=1.0,
+        genre_comb=1.0,
+        panel_ratio=1.0,
+        comic_cover_img=1.0,
+        comic_cover_txt=1.0,
+    ),
 ):
     # print(cbl.clicked_book_lst)
     # print(b_id, generate_fake_clicks)
@@ -212,20 +230,41 @@ async def search_with_real_clicks(
         top_k=20,
     )
 
+    if generate_fake_clicks:
+        relevance_feedback_explanation_dict = {"relevance_feedback_explanation": [""]}
+    else:
+        relevance_feedback_explanation_dict = {
+            "relevance_feedback_explanation": [
+                "male character",
+                "a cartoon book with an image of a man riding a motorcycle",
+                "blue colour scheme",
+                "world war ii military style",
+                "smoking gun",
+                "blue gold suit",
+                "dressed in roman clothes",
+                "female viking",
+                "gaint mouth",
+                "blue-eyed man",
+            ]
+        }
+
     # add facet weights to UI
-    print(interpretable_filtered_book_lst[0] | normalized_feature_importance_dict)
+    print(
+        interpretable_filtered_book_lst[0]
+        | normalized_feature_importance_dict
+        | relevance_feedback_explanation_dict
+    )
     interpretable_filtered_book_new_lst = [
-        d | normalized_feature_importance_dict
+        d | normalized_feature_importance_dict | relevance_feedback_explanation_dict
         for idx, d in enumerate(interpretable_filtered_book_lst)
         if idx <= 20
     ]
 
-    print(
-        feature_importance_dict, clf_coef,
-    )
+    print(feature_importance_dict, clf_coef)
     interpretable_filtered_book_new_lst = [
         interpretable_filtered_book_lst.copy(),
         normalized_feature_importance_dict,
+        relevance_feedback_explanation_dict,
     ]
 
     print()
@@ -244,7 +283,14 @@ async def search_with_real_clicks(
 @app.post("/book_search_with_searchbar_inputs", status_code=200)
 async def search_with_searchbar_inputs(
     searchbar_query: SearchBarQuery,
-    input_feature_importance_dict: Optional[FacetWeight] = FacetWeight(gender=1.0, supersense=1.0, genre_comb=1.0, panel_ratio=1.0, comic_cover_img=1.0, comic_cover_txt=1.0)
+    input_feature_importance_dict: Optional[FacetWeight] = FacetWeight(
+        gender=1.0,
+        supersense=1.0,
+        genre_comb=1.0,
+        panel_ratio=1.0,
+        comic_cover_img=1.0,
+        comic_cover_txt=1.0,
+    ),
 ):
     print("searchbar_query : {}".format(searchbar_query))
 
@@ -289,16 +335,25 @@ async def search_with_searchbar_inputs(
         top_k=20,
     )
 
+    relevance_feedback_explanation_dict = {
+        "relevance_feedback_explanation": ["xxx", "yyy"]
+    }
+
     # add facet weights to UI
     interpretable_filtered_book_new_lst = [
-        d | normalized_feature_importance_dict
+        d | normalized_feature_importance_dict | relevance_feedback_explanation_dict
         for idx, d in enumerate(interpretable_filtered_book_lst)
         if idx <= 20
     ]
-    print(interpretable_filtered_book_lst[0] | normalized_feature_importance_dict)
+    print(
+        interpretable_filtered_book_lst[0]
+        | normalized_feature_importance_dict
+        | relevance_feedback_explanation_dict
+    )
     interpretable_filtered_book_new_lst = [
         interpretable_filtered_book_lst.copy(),
         normalized_feature_importance_dict,
+        relevance_feedback_explanation_dict,
     ]
     return interpretable_filtered_book_new_lst
 

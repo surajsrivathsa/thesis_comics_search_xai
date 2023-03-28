@@ -187,3 +187,23 @@ def load_local_explanation_w5_h1_facets():
     return w5_h1_dict
 
 
+def filter_fnc(doc):
+  if ("comic book cover" not in doc and "blue-ray" not in doc and "ebay" not in doc and "bbc" not in doc and "comic book sitting" not in doc 
+      and "cover of a comic book" not in doc and "metal plate photograph" not in doc and "rounded corners" not in doc and "super-resolution" not in doc
+      and "tabloid" not in doc and "border" not in doc and "smooth panelling" not in doc and "one panel" not in doc and "bunch of comics" not in doc
+      and "image of a comic book page" not in doc and "book with pictures on it" not in doc and "high resolution product photo" not in doc and "low quality photo" not in doc
+      and "full colour print" not in doc and "by " not in doc and "cover image" not in doc and "colorised" not in doc and "full-color" not in doc 
+      and "art style" not in doc and "paperback cover" not in doc and "retro cover" not in doc and "author" not in doc and "grainy image" not in doc
+      and "cover of a magazine" not in doc and "electronic ads" not in doc and "middle of the page" not in doc and "then another" not in doc and "a picture of a comic strip in a frame" not in doc
+      and "full page scan" not in doc and "super - resolution" not in doc and "grainy" not in doc and "listing image" not in doc and "dialog text" not in doc and "in the original box" not in doc
+      and "playboy cover" not in doc and "yellowed paper" not in doc and "screenshot" not in doc and "promotional render" not in doc and "full - color" not in doc and "blue - ray" not in doc
+      and "a picture of a picture of a comic strip" not in doc and "museum catalog photograph" not in doc and "professional high quality scan" not in doc and "weather report" not in doc
+      and "copyright" not in doc and "magazine" not in doc and "product" not in doc and "highly detailed form" not in doc and "flash on camera" not in doc
+      and "commercial banner" not in doc and "camera flash" not in doc and "old footage" not in doc and "textbook page" not in doc and "comic book black lines" not in doc
+      and "text paragraphs in left" not in doc and "meme template" not in doc and "manga panel" not in doc and "with highly detailed" not in doc and "lower quality" not in doc
+      and "tin foiling"  not in doc and "blue - ray screenshot" not in doc
+      and len(doc) > 9 and len(doc.split()) > 1):
+    return True
+  else:
+    return False
+
