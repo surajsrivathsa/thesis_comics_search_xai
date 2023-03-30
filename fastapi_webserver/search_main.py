@@ -11,7 +11,7 @@ sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import common_functions.backend_utils as utils
 from search.coarse import coarse_search
 
-# import explain_relevance_feedback as erf
+import explain_relevance_feedback as erf
 
 print("returned to main")
 import coarse_search_utils as cs_utils
@@ -43,6 +43,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# create global variable
+sentence_transformer_model = None
+
+# define startup and shutdown events
+@app.on_event("startup")
+async def startup_event():
+    global sentence_transformer_model
+    sentence_transformer_model = erf.create_model()
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    global sentence_transformer_model
+    erf.shutdown_model(sentence_transformer_model)
 
 
 class Book(BaseModel):
@@ -231,31 +246,49 @@ async def search_with_real_clicks(
     )
 
     if generate_fake_clicks:
-        relevance_feedback_explanation_dict = {"relevance_feedback_explanation": [""]}
+        relevance_feedback_explanation_dict = await erf.explain_relevance_feedback(
+            clicksinfo_dict=[],
+            query_book_id=b_id,
+            search_results=interpretable_filtered_book_lst,
+            model=sentence_transformer_model,
+        )
     else:
-        relevance_feedback_explanation_dict = {
-            "relevance_feedback_explanation": [
-                "male character",
-                "a cartoon book with an image of a man riding a motorcycle",
-                "blue colour scheme",
-                "world war ii military style",
-                "smoking gun",
-                "blue gold suit",
-                "dressed in roman clothes",
-                "female viking",
-                "gaint mouth",
-                "blue-eyed man",
-            ]
-        }
+        # relevance_feedback_explanation_dict = {
+        #     "relevance_feedback_explanation": [
+        #         "male character",
+        #         "a cartoon book with an image of a man riding a motorcycle",
+        #         "blue colour scheme",
+        #         "world war ii military style",
+        #         "smoking gun",
+        #         "blue gold suit",
+        #         "dressed in roman clothes",
+        #         "female viking",
+        #         "gaint mouth",
+        #         "blue-eyed man",
+        #     ]
+        # }
+        print("clicksinfo_dict: {}".format(clicksinfo_dict))
+        relevance_feedback_explanation_dict = await erf.explain_relevance_feedback(
+            clicksinfo_dict=clicksinfo_dict,
+            query_book_id=b_id,
+            search_results=interpretable_filtered_book_lst,
+            model=sentence_transformer_model,
+        )
 
     # add facet weights to UI
     print(
-        interpretable_filtered_book_lst[0]
-        | normalized_feature_importance_dict
-        | relevance_feedback_explanation_dict
+        {
+            **interpretable_filtered_book_lst[0],
+            **normalized_feature_importance_dict,
+            **relevance_feedback_explanation_dict,
+        }
     )
     interpretable_filtered_book_new_lst = [
-        d | normalized_feature_importance_dict | relevance_feedback_explanation_dict
+        {
+            **d,
+            **normalized_feature_importance_dict,
+            **relevance_feedback_explanation_dict,
+        }
         for idx, d in enumerate(interpretable_filtered_book_lst)
         if idx <= 20
     ]
@@ -335,21 +368,24 @@ async def search_with_searchbar_inputs(
         top_k=20,
     )
 
-    relevance_feedback_explanation_dict = {
-        "relevance_feedback_explanation": ["xxx", "yyy"]
-    }
+    relevance_feedback_explanation_dict = await erf.explain_relevance_feedback(
+        clicksinfo_dict=[],
+        query_book_id=b_id,
+        search_results=interpretable_filtered_book_lst,
+        model=sentence_transformer_model,
+    )
 
     # add facet weights to UI
     interpretable_filtered_book_new_lst = [
-        d | normalized_feature_importance_dict | relevance_feedback_explanation_dict
+        {
+            **d,
+            **normalized_feature_importance_dict,
+            **relevance_feedback_explanation_dict,
+        }
         for idx, d in enumerate(interpretable_filtered_book_lst)
         if idx <= 20
     ]
-    print(
-        interpretable_filtered_book_lst[0]
-        | normalized_feature_importance_dict
-        | relevance_feedback_explanation_dict
-    )
+    print({**interpretable_filtered_book_lst[0], **normalized_feature_importance_dict})
     interpretable_filtered_book_new_lst = [
         interpretable_filtered_book_lst.copy(),
         normalized_feature_importance_dict,
@@ -410,7 +446,7 @@ def search_all(
 
 
 @app.post("/local_explanation", status_code=200)
-async def get_local_explanation(selected_book_lst: dict[str, list]):
+async def get_local_explanation(selected_book_lst: dict):
 
     print(selected_book_lst)
     selected_book_id_1 = selected_book_lst["selected_book_lst"][0]["comic_no"]
