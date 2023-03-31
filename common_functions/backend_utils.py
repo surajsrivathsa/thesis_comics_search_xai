@@ -207,3 +207,13 @@ def filter_fnc(doc):
   else:
     return False
 
+
+def check_if_hovered(clicksinfo_dict: list, b_id: int):
+    interested_book_ids_lst = [
+        book["comic_no"] for book in clicksinfo_dict if book["interested"] == 1.0
+    ] + [b_id]
+
+    if len(set(interested_book_ids_lst)) > 1:
+        return True
+    else: 
+        return False

@@ -2,14 +2,14 @@ import os, sys
 import random
 import torch
 from sentence_transformers import SentenceTransformer, util
-import asyncio
+import asyncio, math
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 import common_functions.backend_utils as utils
 
-# book_metadata_dict, comic_book_metadata_df = utils.load_book_metadata()
+erf_book_metadata_dict, erf_comic_book_metadata_df = utils.load_book_metadata()
 book_cover_prompt_dict = utils.load_local_explanation_book_cover()
 
 
@@ -93,44 +93,70 @@ async def explain_relevance_feedback(
     """
     """
     loop = asyncio.get_running_loop()
-    interested_book_ids_lst = [query_book_id] + [
-        book["comic_no"] for book in clicksinfo_dict if book["interested"] == 1.0
-    ]
+    relevance_feedback_explanation_dict = {"relevance_feedback_explanation": []}
     search_results_book_ids_lst = [book["comic_no"] for book in search_results]
-
-    # interested_book_docs_lst = await loop.create_docs_lst(
-    #     None, create_docs_lst, interested_book_ids_lst, book_cover_prompt_dict, 50
-    # )
-
-    interested_book_docs_lst = create_docs_lst(
-        interested_book_ids_lst, prompt_pkl_dict=book_cover_prompt_dict, sample_size=50
-    )
-
-    # search_results_book_docs_lst = await loop.create_docs_lst(
-    #     None, create_docs_lst, search_results_book_ids_lst, book_cover_prompt_dict, 300
-    # )
     search_results_book_docs_lst = create_docs_lst(
         search_results_book_ids_lst,
         prompt_pkl_dict=book_cover_prompt_dict,
         sample_size=300,
     )
 
-    top_k_matching_themes_tup_lst = best_matching_themes_between_interestedbooks_and_searchresults(
-        corpus=search_results_book_docs_lst,
-        queries=interested_book_docs_lst,
-        model=model,
-        return_top_k=10,
-    )
+    interested_book_ids_lst = [
+        book["comic_no"] for book in clicksinfo_dict if book["interested"] == 1.0
+    ] + [query_book_id]
 
-    # top_k_matching_themes_tup_lst = await loop.create_docs_lst(
-    #     None,
-    #     best_matching_themes_between_interestedbooks_and_searchresults,
-    #     corpus=search_results_book_docs_lst,
-    #     queries=interested_book_docs_lst,
-    #     sim_cutoff=0.8,
-    #     model=model,
-    #     return_top_k=10,
-    # )
+    # Take only query book and last two hovered books
+    if len(interested_book_ids_lst) > 3:
+        interested_book_ids_lst = list(set(interested_book_ids_lst[-5:]))[-3:].copy()
+        
 
-    return {"relevance_feedback_explanation": [sublst[0] for sublst in top_k_matching_themes_tup_lst]}
+    for idx, interested_book_id in enumerate(interested_book_ids_lst):
+        interested_book_docs_lst = create_docs_lst(
+            interested_book_ids_lst,
+            prompt_pkl_dict=book_cover_prompt_dict,
+            sample_size=10,
+        )
+        if interested_book_docs_lst:
+            top_k_matching_themes_tup_lst = best_matching_themes_between_interestedbooks_and_searchresults(
+                corpus=search_results_book_docs_lst,
+                queries=interested_book_docs_lst,
+                model=model,
+                return_top_k=5,
+            )
+            interested_book_obj = erf_book_metadata_dict[interested_book_id]
+
+            relevance_feedback_explanation_dict[
+                "relevance_feedback_explanation"
+            ].append(
+                {
+                    "comic_no": interested_book_obj[0],
+                    "book_title": interested_book_obj[1],
+                    "genre": str(interested_book_obj[2]),
+                    "year": interested_book_obj[3]
+                    if not isinstance(interested_book_obj[3], str)
+                    and not math.isnan(interested_book_obj[3])
+                    else 1950,
+                    "query_book": True
+                    if interested_book_obj[0] == query_book_id
+                    else False,
+                    "explanation_lst": [
+                        sublst[0] for sublst in top_k_matching_themes_tup_lst
+                    ],
+                }
+            )
+        else:
+            relevance_feedback_explanation_dict[
+                "relevance_feedback_explanation"
+            ].append(
+                {
+                    "comic_no": interested_book_obj[0],
+                    "book_title": interested_book_obj[1],
+                    "genre": str(interested_book_obj[2]),
+                    "year": 1950,
+                    "query_book": False,
+                    "explanation_lst": ["No Matching Themes Found"],
+                }
+            )
+
+    return relevance_feedback_explanation_dict
 

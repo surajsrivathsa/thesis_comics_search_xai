@@ -209,13 +209,27 @@ async def search_with_real_clicks(
     print("clicksinfo_dict: {}".format(clicksinfo_dict))
 
     if not generate_fake_clicks:
-        (
-            feature_importance_dict,
-            normalized_feature_importance_dict,
-            clf_coef,
-        ) = rrr.adapt_facet_weights_from_previous_timestep_click_info(
-            previous_click_info_lst=clicksinfo_dict, query_book_id=b_id
-        )
+
+        # handle if user directly clikcs on book without hovering
+        if utils.check_if_hovered(clicksinfo_dict=clicksinfo_dict, b_id=b_id):
+            (
+                feature_importance_dict,
+                normalized_feature_importance_dict,
+                clf_coef,
+            ) = rrr.adapt_facet_weights_from_previous_timestep_click_info(
+                previous_click_info_lst=clicksinfo_dict, query_book_id=b_id
+            )
+        else:
+            normalized_feature_importance_dict = {
+                "gender": input_feature_importance_dict.gender,
+                "supersense": input_feature_importance_dict.supersense,
+                "genre_comb": input_feature_importance_dict.genre_comb,
+                "panel_ratio": input_feature_importance_dict.panel_ratio,
+                "comic_cover_img": input_feature_importance_dict.comic_cover_img,
+                "comic_cover_txt": input_feature_importance_dict.comic_cover_txt,
+            }
+        clf_coef = None
+        feature_importance_dict = normalized_feature_importance_dict
     else:
         normalized_feature_importance_dict = {
             "gender": input_feature_importance_dict.gender,
@@ -253,20 +267,7 @@ async def search_with_real_clicks(
             model=sentence_transformer_model,
         )
     else:
-        # relevance_feedback_explanation_dict = {
-        #     "relevance_feedback_explanation": [
-        #         "male character",
-        #         "a cartoon book with an image of a man riding a motorcycle",
-        #         "blue colour scheme",
-        #         "world war ii military style",
-        #         "smoking gun",
-        #         "blue gold suit",
-        #         "dressed in roman clothes",
-        #         "female viking",
-        #         "gaint mouth",
-        #         "blue-eyed man",
-        #     ]
-        # }
+
         print("clicksinfo_dict: {}".format(clicksinfo_dict))
         relevance_feedback_explanation_dict = await erf.explain_relevance_feedback(
             clicksinfo_dict=clicksinfo_dict,

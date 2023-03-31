@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, math
 import pandas as pd, numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
@@ -51,12 +51,15 @@ def adaptive_rerank_coarse_search_results(
         "records"
     ).copy()
     interpretable_filtered_book_lst.insert(
-        10,
+        7,
         {
             "comic_no": query_book_obj[0],
             "book_title": query_book_obj[1],
             "genre": str(query_book_obj[2]),
-            "year": 1950,
+            "year": query_book_obj[3]
+            if not isinstance(query_book_obj[3], str)
+            and not math.isnan(query_book_obj[3])
+            else 1950,
             "query_book": True,
         },
     )
