@@ -21,7 +21,10 @@ print()
 def fetch_story_pace(book_id: int):
     if book_id in story_pace_feature_dict:
         # print(story_pace_feature_dict[book_id], type(story_pace_feature_dict[book_id]))
-        return [int(i) for i in story_pace_feature_dict[book_id]]
+        try:
+            return [int(i) for i in story_pace_feature_dict[book_id]]
+        except Exception as e:
+            return [int(i) for i in story_pace_feature_dict[book_id]]
     else:
         return [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 

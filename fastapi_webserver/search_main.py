@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 import common_functions.backend_utils as utils
+import common_constants.backend_constants as cst
 from search.coarse import coarse_search
 
 import explain_relevance_feedback as erf
@@ -46,6 +47,11 @@ app.add_middleware(
 
 # create global variable
 sentence_transformer_model = None
+
+# create session id, set this by default
+session_id = "bd65600d-8669-4903-8a14-af88203add38"
+latest_session_id = "bd65600d-8669-4903-8a14-af88203add38"
+latest_session_folderpath = os.path.join(cst.SESSIONDATA_PARENT_FILEPATH, session_id)
 
 # define startup and shutdown events
 @app.on_event("startup")
@@ -311,6 +317,23 @@ async def search_with_real_clicks(
     print()
     print(" +++++++++++++ ++++++++++++ ++++++++++++++ ")
     print()
+
+    # log userrs interaction data for evaluation
+    utils.log_session_data(
+        latest_session_folderpath,
+        {
+            "input_data": {
+                "cbl": cbl,
+                "b_id": b_id,
+                "generate_fake_clicks": generate_fake_clicks,
+                "input_feature_importance_dict": input_feature_importance_dict,
+            },
+            "output_data": {
+                "interpretable_filtered_book_new_lst": interpretable_filtered_book_new_lst
+            },
+            "function_name": "search_with_real_clicks",
+        },
+    )
     return interpretable_filtered_book_new_lst
 
 
@@ -392,7 +415,90 @@ async def search_with_searchbar_inputs(
         normalized_feature_importance_dict,
         relevance_feedback_explanation_dict,
     ]
+
+    # log data for evaluation
+    utils.log_session_data(
+        latest_session_folderpath,
+        {
+            "input_data": {
+                "searchbar_query": searchbar_query,
+                "input_feature_importance_dict": input_feature_importance_dict,
+            },
+            "output_data": {
+                "interpretable_filtered_book_new_lst": interpretable_filtered_book_new_lst
+            },
+            "function_name": "search_with_searchbar_inputs",
+        },
+    )
+
     return interpretable_filtered_book_new_lst
+
+
+@app.post("/local_explanation", status_code=200)
+async def get_local_explanation(selected_book_lst: dict):
+
+    print(selected_book_lst)
+    selected_book_id_1 = selected_book_lst["selected_book_lst"][0]["comic_no"]
+    selected_book_id_2 = selected_book_lst["selected_book_lst"][1]["comic_no"]
+    print(selected_book_id_1, selected_book_id_2)
+    story_pace_book_1 = le_utils.fetch_story_pace(selected_book_id_1)
+    story_pace_book_2 = le_utils.fetch_story_pace(selected_book_id_2)
+
+    w5_h1_facets_book_1 = le_utils.fetch_5w_1h_facets(selected_book_id_1)
+    w5_h1_facets_book_2 = le_utils.fetch_5w_1h_facets(selected_book_id_2)
+
+    lrp_book_1 = le_utils.fetch_book_cover_keywords(selected_book_id_1)
+    lrp_book_2 = le_utils.fetch_book_cover_keywords(selected_book_id_2)
+    print(
+        "{} | {} | {} | {} | {} | {}".format(
+            story_pace_book_1,
+            story_pace_book_2,
+            w5_h1_facets_book_1,
+            w5_h1_facets_book_2,
+            lrp_book_1,
+            lrp_book_2,
+        )
+    )
+
+    # log data for evaluation
+    utils.log_session_data(
+        latest_session_folderpath,
+        {
+            "input_data": {"selected_book_lst": selected_book_lst},
+            "output_data": {
+                "local_explanations": {
+                    "story_pace": [story_pace_book_1, story_pace_book_2],
+                    "w5_h1_facets": [w5_h1_facets_book_1, w5_h1_facets_book_2],
+                    "lrp_genre": [lrp_book_1, lrp_book_2],
+                }
+            },
+            "function_name": "get_local_explanation",
+        },
+    )
+
+    return {
+        "story_pace": [story_pace_book_1, story_pace_book_2],
+        "w5_h1_facets": [w5_h1_facets_book_1, w5_h1_facets_book_2],
+        "lrp_genre": [lrp_book_1, lrp_book_2],
+    }
+
+
+@app.post("/local_explanation", status_code=200)
+async def start_session(flag: str):
+    if flag == "startnewsession":
+        session_id = utils.create_session_data_folder()
+
+    latest_session_id, latest_session_folderpath = utils.find_latest_session(session_id)
+
+    # log data for evaluation
+    utils.log_session_data(
+        latest_session_folderpath,
+        {
+            "input_data": {"session_id": latest_session_id},
+            "output_data": {},
+            "function_name": "start_session",
+        },
+    )
 
 
 @app.get("/book", status_code=200)
@@ -444,39 +550,6 @@ def search_all(
         normalized_feature_importance_dict,
     ]
     return interpretable_filtered_book_new_lst
-
-
-@app.post("/local_explanation", status_code=200)
-async def get_local_explanation(selected_book_lst: dict):
-
-    print(selected_book_lst)
-    selected_book_id_1 = selected_book_lst["selected_book_lst"][0]["comic_no"]
-    selected_book_id_2 = selected_book_lst["selected_book_lst"][1]["comic_no"]
-    print(selected_book_id_1, selected_book_id_2)
-    story_pace_book_1 = le_utils.fetch_story_pace(selected_book_id_1)
-    story_pace_book_2 = le_utils.fetch_story_pace(selected_book_id_2)
-
-    w5_h1_facets_book_1 = le_utils.fetch_5w_1h_facets(selected_book_id_1)
-    w5_h1_facets_book_2 = le_utils.fetch_5w_1h_facets(selected_book_id_2)
-
-    lrp_book_1 = le_utils.fetch_book_cover_keywords(selected_book_id_1)
-    lrp_book_2 = le_utils.fetch_book_cover_keywords(selected_book_id_2)
-    print(
-        "{} | {} | {} | {} | {} | {}".format(
-            story_pace_book_1,
-            story_pace_book_2,
-            w5_h1_facets_book_1,
-            w5_h1_facets_book_2,
-            lrp_book_1,
-            lrp_book_2,
-        )
-    )
-
-    return {
-        "story_pace": [story_pace_book_1, story_pace_book_2],
-        "w5_h1_facets": [w5_h1_facets_book_1, w5_h1_facets_book_2],
-        "lrp_genre": [lrp_book_1, lrp_book_2],
-    }
 
 
 if __name__ == "__main__":

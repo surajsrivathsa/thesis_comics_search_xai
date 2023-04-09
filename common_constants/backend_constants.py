@@ -22,3 +22,5 @@ INTERPRETABLE_FEATURES_FILEPATH = os.path.join(parent_dir, 'features', 'interpre
 STORY_PACE_FEATURE_FILEPATH = os.path.join(parent_dir, 'features', 'interpretable', "feature_storypace_all.pkl")
 BOOK_COVER_PROMPT_FILEPATH = os.path.join(parent_dir,  'features', 'interpretable', "comic_book_cover_prompt_dict.pickle")
 W5_H1_FACETS_FILEPATH = os.path.join(parent_dir,  'features', 'interpretable', "facets_all_dict.pickle")
+W5_H1_FACETS_JSON_FILEPATH = os.path.join(parent_dir,  'features', 'interpretable', "spellchecked_parsed_json_lst.json")
+SESSIONDATA_PARENT_FILEPATH = os.path.join(parent_dir, 'data', 'session_data')

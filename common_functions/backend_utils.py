@@ -2,6 +2,10 @@ import numpy as np
 import pandas as pd
 import pickle
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
+import uuid
+import datetime
+import os
+import json
 
 ## import custom functions
 import common_constants.backend_constants as cst
@@ -172,40 +176,95 @@ def load_local_explanation_story_pace():
 
 def load_local_explanation_book_cover():
 
-    with open(cst.BOOK_COVER_PROMPT_FILEPATH, 'rb') as handle:
+    with open(cst.BOOK_COVER_PROMPT_FILEPATH, "rb") as handle:
         book_cover_prompt_dict = pickle.load(handle)
-    
+
     return book_cover_prompt_dict
 
 
 def load_local_explanation_w5_h1_facets():
 
-    with open(cst.W5_H1_FACETS_FILEPATH, 'rb') as handle:
+    with open(cst.W5_H1_FACETS_FILEPATH, "rb") as handle:
         all_dict = pickle.load(handle)
         w5_h1_dict = all_dict["facets_all_dict"]
-    
+
     return w5_h1_dict
 
 
 def filter_fnc(doc):
-  if ("comic book cover" not in doc and "blue-ray" not in doc and "ebay" not in doc and "bbc" not in doc and "comic book sitting" not in doc 
-      and "cover of a comic book" not in doc and "metal plate photograph" not in doc and "rounded corners" not in doc and "super-resolution" not in doc
-      and "tabloid" not in doc and "border" not in doc and "smooth panelling" not in doc and "one panel" not in doc and "bunch of comics" not in doc
-      and "image of a comic book page" not in doc and "book with pictures on it" not in doc and "high resolution product photo" not in doc and "low quality photo" not in doc
-      and "full colour print" not in doc and "by " not in doc and "cover image" not in doc and "colorised" not in doc and "full-color" not in doc 
-      and "art style" not in doc and "paperback cover" not in doc and "retro cover" not in doc and "author" not in doc and "grainy image" not in doc
-      and "cover of a magazine" not in doc and "electronic ads" not in doc and "middle of the page" not in doc and "then another" not in doc and "a picture of a comic strip in a frame" not in doc
-      and "full page scan" not in doc and "super - resolution" not in doc and "grainy" not in doc and "listing image" not in doc and "dialog text" not in doc and "in the original box" not in doc
-      and "playboy cover" not in doc and "yellowed paper" not in doc and "screenshot" not in doc and "promotional render" not in doc and "full - color" not in doc and "blue - ray" not in doc
-      and "a picture of a picture of a comic strip" not in doc and "museum catalog photograph" not in doc and "professional high quality scan" not in doc and "weather report" not in doc
-      and "copyright" not in doc and "magazine" not in doc and "product" not in doc and "highly detailed form" not in doc and "flash on camera" not in doc
-      and "commercial banner" not in doc and "camera flash" not in doc and "old footage" not in doc and "textbook page" not in doc and "comic book black lines" not in doc
-      and "text paragraphs in left" not in doc and "meme template" not in doc and "manga panel" not in doc and "with highly detailed" not in doc and "lower quality" not in doc
-      and "tin foiling"  not in doc and "blue - ray screenshot" not in doc
-      and len(doc) > 9 and len(doc.split()) > 1):
-    return True
-  else:
-    return False
+    if (
+        "comic book cover" not in doc
+        and "blue-ray" not in doc
+        and "ebay" not in doc
+        and "bbc" not in doc
+        and "comic book sitting" not in doc
+        and "cover of a comic book" not in doc
+        and "metal plate photograph" not in doc
+        and "rounded corners" not in doc
+        and "super-resolution" not in doc
+        and "tabloid" not in doc
+        and "border" not in doc
+        and "smooth panelling" not in doc
+        and "one panel" not in doc
+        and "bunch of comics" not in doc
+        and "image of a comic book page" not in doc
+        and "book with pictures on it" not in doc
+        and "high resolution product photo" not in doc
+        and "low quality photo" not in doc
+        and "full colour print" not in doc
+        and "by " not in doc
+        and "cover image" not in doc
+        and "colorised" not in doc
+        and "full-color" not in doc
+        and "art style" not in doc
+        and "paperback cover" not in doc
+        and "retro cover" not in doc
+        and "author" not in doc
+        and "grainy image" not in doc
+        and "cover of a magazine" not in doc
+        and "electronic ads" not in doc
+        and "middle of the page" not in doc
+        and "then another" not in doc
+        and "a picture of a comic strip in a frame" not in doc
+        and "full page scan" not in doc
+        and "super - resolution" not in doc
+        and "grainy" not in doc
+        and "listing image" not in doc
+        and "dialog text" not in doc
+        and "in the original box" not in doc
+        and "playboy cover" not in doc
+        and "yellowed paper" not in doc
+        and "screenshot" not in doc
+        and "promotional render" not in doc
+        and "full - color" not in doc
+        and "blue - ray" not in doc
+        and "a picture of a picture of a comic strip" not in doc
+        and "museum catalog photograph" not in doc
+        and "professional high quality scan" not in doc
+        and "weather report" not in doc
+        and "copyright" not in doc
+        and "magazine" not in doc
+        and "product" not in doc
+        and "highly detailed form" not in doc
+        and "flash on camera" not in doc
+        and "commercial banner" not in doc
+        and "camera flash" not in doc
+        and "old footage" not in doc
+        and "textbook page" not in doc
+        and "comic book black lines" not in doc
+        and "text paragraphs in left" not in doc
+        and "meme template" not in doc
+        and "manga panel" not in doc
+        and "with highly detailed" not in doc
+        and "lower quality" not in doc
+        and "tin foiling" not in doc
+        and "blue - ray screenshot" not in doc
+        and len(doc) > 9
+        and len(doc.split()) > 1
+    ):
+        return True
+    else:
+        return False
 
 
 def check_if_hovered(clicksinfo_dict: list, b_id: int):
@@ -215,5 +274,31 @@ def check_if_hovered(clicksinfo_dict: list, b_id: int):
 
     if len(set(interested_book_ids_lst)) > 1:
         return True
-    else: 
+    else:
         return False
+
+
+def create_session_data_folder():
+    unique_id = str(uuid.uuid4())
+    now_str = datetime.datetime.now().strftime("%Y%m%d_%H:%M:%S")
+    final_unique_id = now_str + "|" + unique_id
+    os.mkdir(os.path.join(cst.SESSIONDATA_PARENT_FILEPATH, final_unique_id))
+    return final_unique_id
+
+
+def find_latest_session(unique_id: str):
+    latest_session_id = sorted(
+        os.listdir(os.path.join(cst.SESSIONDATA_PARENT_FILEPATH, unique_id)),
+        key=os.path.getmtime,
+    )[0]
+    latest_session_folderpath = os.path.join(
+        cst.SESSIONDATA_PARENT_FILEPATH, latest_session_id
+    )
+    return (latest_session_id, latest_session_folderpath)
+
+
+def log_session_data(session_folderpath: str, data: dict):
+    now_str = datetime.datetime.now().strftime("%Y%m%d_%H:%M:%S")
+    with open(os.path.join(session_folderpath, "{}.json".format(now_str)), "w") as json_filehandler:
+        json.dump(data, json_filehandler, indent=2)
+    return
