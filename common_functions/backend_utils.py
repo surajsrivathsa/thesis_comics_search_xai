@@ -280,16 +280,15 @@ def check_if_hovered(clicksinfo_dict: list, b_id: int):
 
 def create_session_data_folder():
     unique_id = str(uuid.uuid4())
-    now_str = datetime.datetime.now().strftime("%Y%m%d_%H:%M:%S")
+    now_str = datetime.datetime.now().strftime("%Y%m%d_%H_%M_%S")
     final_unique_id = now_str + "|" + unique_id
     os.mkdir(os.path.join(cst.SESSIONDATA_PARENT_FILEPATH, final_unique_id))
-    return final_unique_id
+    return (final_unique_id, os.path.join(cst.SESSIONDATA_PARENT_FILEPATH, final_unique_id))
 
 
 def find_latest_session(unique_id: str):
     latest_session_id = sorted(
-        os.listdir(os.path.join(cst.SESSIONDATA_PARENT_FILEPATH, unique_id)),
-        key=os.path.getmtime,
+        os.listdir(cst.SESSIONDATA_PARENT_FILEPATH), key=os.path.getmtime
     )[0]
     latest_session_folderpath = os.path.join(
         cst.SESSIONDATA_PARENT_FILEPATH, latest_session_id
@@ -298,7 +297,9 @@ def find_latest_session(unique_id: str):
 
 
 def log_session_data(session_folderpath: str, data: dict):
-    now_str = datetime.datetime.now().strftime("%Y%m%d_%H:%M:%S")
-    with open(os.path.join(session_folderpath, "{}.json".format(now_str)), "w") as json_filehandler:
+    now_str = datetime.datetime.now().strftime("%Y%m%d_%H_%M_%S")
+    with open(
+        os.path.join(session_folderpath, "{}.json".format(now_str)), "w"
+    ) as json_filehandler:
         json.dump(data, json_filehandler, indent=2)
     return

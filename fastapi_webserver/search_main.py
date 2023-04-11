@@ -319,14 +319,15 @@ async def search_with_real_clicks(
     print()
 
     # log userrs interaction data for evaluation
+    global latest_session_folderpath
     utils.log_session_data(
         latest_session_folderpath,
         {
             "input_data": {
-                "cbl": cbl,
+                "cbl": cbl.dict(),
                 "b_id": b_id,
                 "generate_fake_clicks": generate_fake_clicks,
-                "input_feature_importance_dict": input_feature_importance_dict,
+                "input_feature_importance_dict": input_feature_importance_dict.dict(),
             },
             "output_data": {
                 "interpretable_filtered_book_new_lst": interpretable_filtered_book_new_lst
@@ -417,12 +418,13 @@ async def search_with_searchbar_inputs(
     ]
 
     # log data for evaluation
+    global latest_session_folderpath
     utils.log_session_data(
         latest_session_folderpath,
         {
             "input_data": {
-                "searchbar_query": searchbar_query,
-                "input_feature_importance_dict": input_feature_importance_dict,
+                "searchbar_query": searchbar_query.dict(),
+                "input_feature_importance_dict": input_feature_importance_dict.dict(),
             },
             "output_data": {
                 "interpretable_filtered_book_new_lst": interpretable_filtered_book_new_lst
@@ -461,6 +463,7 @@ async def get_local_explanation(selected_book_lst: dict):
     )
 
     # log data for evaluation
+    global latest_session_folderpath
     utils.log_session_data(
         latest_session_folderpath,
         {
@@ -483,12 +486,16 @@ async def get_local_explanation(selected_book_lst: dict):
     }
 
 
-@app.post("/local_explanation", status_code=200)
+@app.get("/start_session", status_code=200)
 async def start_session(flag: str):
+    print(flag)
     if flag == "startnewsession":
-        session_id = utils.create_session_data_folder()
+        new_session_id, curr_session_folderpath = utils.create_session_data_folder()
+        global session_id
+        session_id = new_session_id
 
-    latest_session_id, latest_session_folderpath = utils.find_latest_session(session_id)
+        global latest_session_folderpath
+        latest_session_folderpath = curr_session_folderpath
 
     # log data for evaluation
     utils.log_session_data(
@@ -499,6 +506,7 @@ async def start_session(flag: str):
             "function_name": "start_session",
         },
     )
+    return {"session_id": session_id}
 
 
 @app.get("/book", status_code=200)
