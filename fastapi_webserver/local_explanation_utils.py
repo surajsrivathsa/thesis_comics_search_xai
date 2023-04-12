@@ -1,7 +1,7 @@
 import os, sys
 import pandas as pd, numpy as np
 import ast
-
+import random
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
@@ -73,6 +73,39 @@ def fetch_5w_1h_facets(book_id: int):
     else:
         return default_facets
     return ""
+
+
+def pick_facets_for_local_explanation(book_id: int):
+    default_facets = {
+        "Who": [],
+        "What": [],
+        "When": [],
+        "Why": [],
+        "Where": [],
+        "How": [],
+    }
+    if book_id in w5_h1_facets_dict:
+        if "Who" in w5_h1_facets_dict[book_id] and len(w5_h1_facets_dict[book_id]["Who"]) > 0:
+            default_facets["Who"] = [x for x in random.sample(w5_h1_facets_dict[book_id]["Who"], min(3, len(w5_h1_facets_dict[book_id]["Who"]))) if len(x) > 1]
+        
+        if "What" in w5_h1_facets_dict[book_id] and len(w5_h1_facets_dict[book_id]["What"]) > 0:
+            default_facets["What"] = [x for x in random.sample(w5_h1_facets_dict[book_id]["What"], min(2, len(w5_h1_facets_dict[book_id]["Who"]))) if len(x) > 1]
+        
+        if "When" in w5_h1_facets_dict[book_id] and len(w5_h1_facets_dict[book_id]["When"]) > 0:
+            default_facets["When"] = [x for x in random.sample(w5_h1_facets_dict[book_id]["When"], min(2, len(w5_h1_facets_dict[book_id]["When"]))) if len(x) > 1]
+
+        if "Why" in w5_h1_facets_dict[book_id] and len(w5_h1_facets_dict[book_id]["Why"]) > 0:
+            default_facets["Why"] = [x for x in random.sample(w5_h1_facets_dict[book_id]["Why"], min(2, len(w5_h1_facets_dict[book_id]["Why"]))) if len(x) > 1]
+        
+        if "Where" in w5_h1_facets_dict[book_id] and len(w5_h1_facets_dict[book_id]["Where"]) > 0:
+            default_facets["Where"] = [x for x in random.sample(w5_h1_facets_dict[book_id]["Where"], min(2, len(w5_h1_facets_dict[book_id]["Where"]))) if len(x) > 1]
+        
+        if "How" in w5_h1_facets_dict[book_id] and len(w5_h1_facets_dict[book_id]["How"]) > 0:
+            default_facets["How"] = [x for x in random.sample(w5_h1_facets_dict[book_id]["How"], min(2, len(w5_h1_facets_dict[book_id]["How"]))) if len(x) > 1]
+
+        return default_facets   
+    else:
+        return default_facets
 
 
 def fetch_book_cover_keywords(book_id: int):

@@ -183,10 +183,14 @@ def load_local_explanation_book_cover():
 
 
 def load_local_explanation_w5_h1_facets():
+    w5_h1_dict = {}
+    
+    with open(cst.W5_H1_FACETS_JSON_FILEPATH) as f:
+        spellchecked_parsed_json_lst = json.load(f)
+        for valdict in spellchecked_parsed_json_lst:
+            w5_h1_dict[valdict["comic_no"]] = valdict
 
-    with open(cst.W5_H1_FACETS_FILEPATH, "rb") as handle:
-        all_dict = pickle.load(handle)
-        w5_h1_dict = all_dict["facets_all_dict"]
+    print(w5_h1_dict[540])
 
     return w5_h1_dict
 
@@ -283,7 +287,10 @@ def create_session_data_folder():
     now_str = datetime.datetime.now().strftime("%Y%m%d_%H_%M_%S")
     final_unique_id = now_str + "|" + unique_id
     os.mkdir(os.path.join(cst.SESSIONDATA_PARENT_FILEPATH, final_unique_id))
-    return (final_unique_id, os.path.join(cst.SESSIONDATA_PARENT_FILEPATH, final_unique_id))
+    return (
+        final_unique_id,
+        os.path.join(cst.SESSIONDATA_PARENT_FILEPATH, final_unique_id),
+    )
 
 
 def find_latest_session(unique_id: str):
@@ -303,3 +310,4 @@ def log_session_data(session_folderpath: str, data: dict):
     ) as json_filehandler:
         json.dump(data, json_filehandler, indent=2)
     return
+
