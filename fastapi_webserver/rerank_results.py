@@ -3,6 +3,9 @@ import pandas as pd, numpy as np, os, sys
 from sklearn.inspection import permutation_importance
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
+from sklearn.utils.class_weight import compute_class_weight, compute_sample_weight
+import lime
+import lime.lime_tabular
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -14,8 +17,23 @@ import common_constants.backend_constants as cst
 
 # clf = PassiveAggressiveClassifier(max_iter=100, random_state=7, tol=1e-3)
 clf_pipe = Pipeline(
-    [("scl", StandardScaler()), ("clf", SGDClassifier(max_iter=1000, tol=1e-3))]
+    [
+        ("scl", StandardScaler()),
+        ("features_np", np.zeros((15, 6))),
+        ("labels_np", np.zeros((15,))),
+        (
+            "clf",
+            SGDClassifier(
+                max_iter=500,
+                tol=2e-3,
+                loss="modified_huber",
+                random_state=7,
+                validation_fraction=0.3,
+            ),
+        ),
+    ]
 )
+
 
 ## Loading features and metadata beforehand
 (
@@ -30,6 +48,25 @@ clf_pipe = Pipeline(
 ) = utils.load_all_interpretable_features()
 book_metadata_dict, comic_book_metadata_df = utils.load_book_metadata()
 print(interpretable_scaled_features_np.shape)
+
+
+def partial_pipe_fit(
+    pipeline_obj, features_np, class_np, classes=["not_interested", "interested"]
+):
+    X_scaled = pipeline_obj.named_steps["scl"].fit_transform(features_np)
+    Y = class_np.ravel()
+    pipeline_obj.named_steps["features_np"] = X_scaled
+    pipeline_obj.named_steps["labels_np"] = Y
+    class_weights = compute_class_weight(
+        class_weight="balanced", y=Y, classes=np.unique(Y),
+    )
+    sample_weight = compute_sample_weight(class_weight="balanced", y=Y)
+    print("class weights: {}".format(class_weights))
+    print("sample weights: {}".format(sample_weight))
+    pipeline_obj.named_steps["clf"] = pipeline_obj.named_steps["clf"].partial_fit(
+        X_scaled, Y, classes=np.unique(Y), sample_weight=sample_weight
+    )
+    return pipeline_obj
 
 
 def get_top_n_matching_book_info(
@@ -77,7 +114,10 @@ def get_top_n_matching_book_info(
 def permutation_based_feature_importance(
     model, X, y, stddev_weight=2, feature_col_labels_lst=[]
 ):
-    r = permutation_importance(model, X, y, n_repeats=30, random_state=5)
+    X_scaled = model.named_steps["scl"].fit_transform(X)
+    r = permutation_importance(
+        model.named_steps["clf"], X_scaled, y, n_repeats=30, random_state=5
+    )
     feature_importance_dict = {}
     mean_lst = []
     feature_nm_lst = []
@@ -110,17 +150,97 @@ def permutation_based_feature_importance(
     return (feature_importance_dict, normalized_feature_importance_dict)
 
 
+def lime_based_feature_importance(
+    clf_pipe,
+    X,
+    Y,
+    feature_col_labels_lst=[
+        "gender",
+        "supersense",
+        "genre_comb",
+        "panel_ratio",
+        "comic_cover_img",
+        "comic_cover_txt",
+    ],
+):
+
+    X_scaled = clf_pipe.named_steps["scl"].fit_transform(X)
+
+    # create LIME explainer
+    explainer = lime.lime_tabular.LimeTabularExplainer(
+        training_data=X,
+        feature_names=feature_col_labels_lst,
+        class_names=["not_interested", "interested"],
+        mode="classification",
+        random_state=42,
+    )
+
+    # select a 10 random sample of instances to explain
+    sample_indices = np.random.choice(X_scaled.shape[0], size=12, replace=False)
+    sample_instances = X_scaled[sample_indices]
+    sample_labels = Y[sample_indices]
+
+    # generate explanations for each instance
+    explanations = []
+    for i in range(len(sample_instances)):
+        exp = explainer.explain_instance(
+            data_row=sample_instances[i],
+            predict_fn=clf_pipe.named_steps["clf"].predict_proba,
+            num_features=6,
+            labels=(1,),
+        )
+        explanations.append(exp.as_list(label=1))
+
+    print()
+    print(" ----------- -------------- ------------- ------------ ")
+    print()
+    print("Initial Explanations: {}".format(explanations))
+    print(explainer.feature_names)
+
+    # combine explanations
+    combined_exp = {}
+    for feature_name in explainer.feature_names:
+        combined_exp[feature_name] = 0.0
+
+    for exp in explanations:
+        print(combined_exp)
+        for feature_name, feature_weight in exp:
+            feature_name = [
+                x for x in feature_name.split(" ") if x in explainer.feature_names
+            ][0]
+
+            combined_exp[feature_name] += float(feature_weight)
+            print(feature_name, combined_exp[feature_name])
+
+    # normalize combined explanation
+    total_weight = sum(abs(weight) for weight in combined_exp.values())
+
+    print("Combined Lime Explanations: ".format(combined_exp))
+    print("Total Lime Explanations: ".format(total_weight))
+    for feature_name in explainer.feature_names:
+        combined_exp[feature_name] /= total_weight + 1e-3
+
+    print("Normalized Lime Explanations: ".format(combined_exp))
+    print()
+    print(" ----------- -------------- ------------- ------------ ")
+    print()
+
+
 def adapt_facet_weights_from_previous_timestep_click_info(
     previous_click_info_lst: list, query_book_id: int
 ):
 
-    selected_idx = [d["comic_no"] for d in previous_click_info_lst]
+    selected_idx = [
+        d["comic_no"] for d in previous_click_info_lst if d["comic_no"] != query_book_id
+    ]
     # print(selected_idx)
     previous_labels_lst = [
-        d["interested"] for d in previous_click_info_lst
+        d["interested"]
+        for d in previous_click_info_lst
+        if d["comic_no"] != query_book_id
     ]  # [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0]
-    query_book_id = query_book_id  # [d["comic_no"] for d in previous_click_info_lst if d["is_query"] == 1][0]
-    # print(previous_labels_lst)
+    # query_book_id = query_book_id  # [d["comic_no"] for d in previous_click_info_lst if d["is_query"] == 1][0]
+
     features_np = interpretable_scaled_features_np[selected_idx, :]
     labels_np = np.array([previous_labels_lst]).T
 
@@ -141,12 +261,10 @@ def adapt_facet_weights_from_previous_timestep_click_info(
         panel_ratio_feat_np[selected_idx, :],
         panel_ratio_feat_np[max(query_book_id, 0) : query_book_id + 1, :],
     )
-
     comic_cover_img_l1_feat_np = utils.l1_similarity(
         comic_cover_img_np[selected_idx, :],
         comic_cover_img_np[max(query_book_id, 0) : query_book_id + 1, :],
     )
-
     comic_cover_txt_l1_feat_np = utils.l1_similarity(
         comic_cover_txt_np[selected_idx, :],
         comic_cover_txt_np[max(query_book_id, 0) : query_book_id + 1, :],
@@ -160,9 +278,26 @@ def adapt_facet_weights_from_previous_timestep_click_info(
     features_np[:, 4] = comic_cover_img_l1_feat_np
     features_np[:, 5] = comic_cover_txt_l1_feat_np
 
-    clf_pipe.fit(features_np, labels_np.ravel())
-    # print(clf_pipe['clf'].get_params())
-    # clf = clf_pipe.best_estimator_.named_steps["clf"]
+    # retrieve global variable
+    global clf_pipe
+    clf_pipe = partial_pipe_fit(clf_pipe, features_np, labels_np)
+
+    # find lime feature importance
+    # lime_based_feature_importance(
+    #     clf_pipe=clf_pipe,
+    #     X=features_np,
+    #     Y=labels_np,
+    #     feature_col_labels_lst=[
+    #         "gender",
+    #         "supersense",
+    #         "genre_comb",
+    #         "panel_ratio",
+    #         "comic_cover_img",
+    #         "comic_cover_txt",
+    #     ],
+    # )
+
+    # find pfi based feature importance
     (
         feature_importance_dict,
         normalized_feature_importance_dict,
@@ -180,6 +315,11 @@ def adapt_facet_weights_from_previous_timestep_click_info(
             "comic_cover_txt",
         ],
     )
+
+    print()
+    print(" PFI based feature importance ")
+    print(feature_importance_dict, normalized_feature_importance_dict)
+    print()
 
     return (
         feature_importance_dict,

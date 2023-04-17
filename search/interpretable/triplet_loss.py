@@ -55,7 +55,7 @@ def group_triplet_loss(
     epochs=1001,
     learning_rate=1e-2,
     margin=0.3,
-    fd=[0, 3, 48, 64, 65],
+    fd=[0, 3, 48, 64, 65, 2113, 2117],
 ):
 
     # print(global_weights)
@@ -81,8 +81,10 @@ def group_triplet_loss(
     feature_importance = {
         "gender": global_weights[0],
         "super_sense": global_weights[1],
-        "genre": global_weights[2],
+        "genre_comb": global_weights[2],
         "story_pace": global_weights[3],
+        "comic_cover_img": global_weights[4],
+        "comic_cover_txt": global_weights[5],
     }
     return feature_importance
 

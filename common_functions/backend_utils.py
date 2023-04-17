@@ -311,3 +311,14 @@ def log_session_data(session_folderpath: str, data: dict):
         json.dump(data, json_filehandler, indent=2)
     return
 
+
+def check_if_all_books_are_hovered(clicksinfo_dict: list, b_id: int):
+    interested_book_ids_lst = [
+        book["comic_no"] for book in clicksinfo_dict if book["interested"] == 1.0
+    ] + [b_id]
+
+    if len(set(interested_book_ids_lst)) == 15:
+        return True
+    else:
+        return False
+

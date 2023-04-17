@@ -1,9 +1,13 @@
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, Query, HTTPException, File
+from fastapi.responses import StreamingResponse
+from io import BytesIO
+
 from pydantic import BaseModel
 from typing import List, Optional
 import json, os, sys, random
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd, numpy as np
+import random
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -53,17 +57,25 @@ session_id = "bd65600d-8669-4903-8a14-af88203add38"
 latest_session_id = "bd65600d-8669-4903-8a14-af88203add38"
 latest_session_folderpath = os.path.join(cst.SESSIONDATA_PARENT_FILEPATH, session_id)
 
+# create global variable to track history of search results
+book_search_results_history_lst = []
+
+
 # define startup and shutdown events
 @app.on_event("startup")
 async def startup_event():
     global sentence_transformer_model
     sentence_transformer_model = erf.create_model()
+    global book_search_results_history_lst
+    book_search_results_history_lst = []
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     global sentence_transformer_model
     erf.shutdown_model(sentence_transformer_model)
+    global book_search_results_history_lst
+    book_search_results_history_lst = []
 
 
 class Book(BaseModel):
@@ -73,6 +85,8 @@ class Book(BaseModel):
     genre: str
     year: str
     interested: Optional[float] = 0.0
+    thumbsUp: Optional[float] = 0.0
+    thumbsDown: Optional[float] = 0.0
 
 
 class BookList(BaseModel):
@@ -203,6 +217,10 @@ async def search_with_real_clicks(
             generate_fake_clicks, type(generate_fake_clicks)
         )
     )
+
+    # if you use search results from search bar reset history
+    global book_search_results_history_lst
+
     if generate_fake_clicks:
         clicksinfo_dict = create_fake_clicks_for_previous_timestep_data(
             coarse_filtered_book_df=coarse_filtered_book_df
@@ -216,8 +234,12 @@ async def search_with_real_clicks(
 
     if not generate_fake_clicks:
 
-        # handle if user directly clikcs on book without hovering
-        if utils.check_if_hovered(clicksinfo_dict=clicksinfo_dict, b_id=b_id):
+        # handle if user directly clikcs on book without hovering and if all books are hovered
+        if utils.check_if_hovered(
+            clicksinfo_dict=clicksinfo_dict, b_id=b_id
+        ) and not utils.check_if_all_books_are_hovered(
+            clicksinfo_dict=clicksinfo_dict, b_id=b_id
+        ):
             (
                 feature_importance_dict,
                 normalized_feature_importance_dict,
@@ -225,6 +247,21 @@ async def search_with_real_clicks(
             ) = rrr.adapt_facet_weights_from_previous_timestep_click_info(
                 previous_click_info_lst=clicksinfo_dict, query_book_id=b_id
             )
+        elif not utils.check_if_hovered(
+            clicksinfo_dict=clicksinfo_dict, b_id=b_id
+        ) and utils.check_if_all_books_are_hovered(
+            clicksinfo_dict=clicksinfo_dict, b_id=b_id
+        ):
+            normalized_feature_importance_dict = {
+                "gender": input_feature_importance_dict.gender,
+                "supersense": input_feature_importance_dict.supersense,
+                "genre_comb": input_feature_importance_dict.genre_comb,
+                "panel_ratio": input_feature_importance_dict.panel_ratio,
+                "comic_cover_img": input_feature_importance_dict.comic_cover_img,
+                "comic_cover_txt": input_feature_importance_dict.comic_cover_txt,
+            }
+            clf_coef = None
+            feature_importance_dict = normalized_feature_importance_dict
         else:
             normalized_feature_importance_dict = {
                 "gender": input_feature_importance_dict.gender,
@@ -258,12 +295,16 @@ async def search_with_real_clicks(
     (
         interpretable_filtered_book_lst,
         interpretable_filtered_book_df,
+        historical_book_ids_lst,
     ) = is_utils.adaptive_rerank_coarse_search_results(
         normalized_feature_importance_dict=normalized_feature_importance_dict,
         query_comic_book_id=b_id,
         coarse_search_results_lst=coarse_filtered_book_new_lst,
         top_k=20,
+        historical_book_ids_lst=book_search_results_history_lst.copy(),
     )
+
+    book_search_results_history_lst = historical_book_ids_lst.copy()
 
     if generate_fake_clicks:
         relevance_feedback_explanation_dict = await erf.explain_relevance_feedback(
@@ -282,7 +323,7 @@ async def search_with_real_clicks(
             model=sentence_transformer_model,
         )
 
-    # add facet weights to UI
+    # add facet weights to UI dict
     print(
         {
             **interpretable_filtered_book_lst[0],
@@ -308,7 +349,7 @@ async def search_with_real_clicks(
     ]
 
     print()
-    print(" +++++++++++++ ++++++++++++ ++++++++++++++ ")
+    print(" +++++++++++++ ++++++++++++ +++++++++++++ ")
     print()
 
     for x in interpretable_filtered_book_lst:
@@ -352,6 +393,10 @@ async def search_with_searchbar_inputs(
 ):
     print("searchbar_query : {}".format(searchbar_query))
 
+    # if you use search results from search bar reset history
+    global book_search_results_history_lst
+    book_search_results_history_lst = []
+
     if (
         searchbar_query.type == "book"
         or searchbar_query.type == "character"
@@ -386,12 +431,15 @@ async def search_with_searchbar_inputs(
     (
         interpretable_filtered_book_lst,
         interpretable_filtered_book_df,
+        historical_book_ids_lst,
     ) = is_utils.adaptive_rerank_coarse_search_results(
         normalized_feature_importance_dict=normalized_feature_importance_dict,
         query_comic_book_id=b_id,
         coarse_search_results_lst=coarse_filtered_book_new_lst,
         top_k=20,
+        historical_book_ids_lst=book_search_results_history_lst.copy(),
     )
+    book_search_results_history_lst = historical_book_ids_lst.copy()
 
     relevance_feedback_explanation_dict = await erf.explain_relevance_feedback(
         clicksinfo_dict=[],
@@ -509,55 +557,28 @@ async def start_session(flag: str):
     return {"session_id": session_id}
 
 
-@app.get("/book", status_code=200)
-def search_all(
-    b_id: int = Query(...), generate_fake_clicks: bool = Query(default=True),
-):
+@app.get(
+    "/view_comic_book/{b_id}",
+    status_code=200,
+    responses={200: {"content": {"application/pdf": {}}}},
+    response_class=StreamingResponse,
+)
+async def view_comic_book(b_id: int = 1):
 
-    # b_id: int, clicksinfo_dict: dict, generate_fake_clicks=True
-    (
-        coarse_filtered_book_new_lst,
-        coarse_filtered_book_df,
-    ) = cs_utils.perform_coarse_search(b_id=b_id)
-
-    if generate_fake_clicks:
-        clicksinfo_dict = create_fake_clicks_for_previous_timestep_data(
-            coarse_filtered_book_df=coarse_filtered_book_df
-        )
-    else:
-        clicksinfo_dict = [{"0": "1"}, {"2": "0"}]
-
-    (
-        feature_importance_dict,
-        normalized_feature_importance_dict,
-        clf_coef,
-    ) = rrr.adapt_facet_weights_from_previous_timestep_click_info(
-        previous_click_info_lst=clicksinfo_dict, query_book_id=b_id
+    pdf_folderpath = "/Users/surajshashidhar/git/thesis_comics_search_xai/data/comics_data/comic_books"
+    pdf_filepath = os.path.join(pdf_folderpath, "comic_book_{}.pdf".format(b_id))
+    print("pdf_filepath: {}".format(pdf_filepath))
+    new_pdf_filepath = os.path.join(
+        pdf_folderpath, "comic_book_{}.pdf".format(random.randint(0, 10))
     )
+    print("new pdf_filepath: {}".format(new_pdf_filepath))
 
-    (
-        interpretable_filtered_book_lst,
-        interpretable_filtered_book_df,
-    ) = is_utils.adaptive_rerank_coarse_search_results(
-        normalized_feature_importance_dict=normalized_feature_importance_dict,
-        query_comic_book_id=b_id,
-        coarse_search_results_lst=coarse_filtered_book_new_lst,
-        top_k=20,
-    )
-
-    # add facet weights to UI
-    interpretable_filtered_book_new_lst = [
-        d | normalized_feature_importance_dict for d in interpretable_filtered_book_lst
-    ]
-    print(interpretable_filtered_book_lst[0] | normalized_feature_importance_dict)
-    print(
-        feature_importance_dict, clf_coef,
-    )
-    interpretable_filtered_book_new_lst = [
-        interpretable_filtered_book_lst.copy(),
-        normalized_feature_importance_dict,
-    ]
-    return interpretable_filtered_book_new_lst
+    # Open the PDF file in binary mode
+    with open(new_pdf_filepath, "rb") as file:
+        # Create a BytesIO object to hold the streamed data
+        file_like = BytesIO(file.read())
+        # Return the streamed response
+        return StreamingResponse(file_like, media_type="application/pdf")
 
 
 if __name__ == "__main__":
