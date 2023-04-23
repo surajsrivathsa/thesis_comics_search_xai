@@ -244,7 +244,7 @@ async def search_with_real_clicks(
                 feature_importance_dict,
                 normalized_feature_importance_dict,
                 clf_coef,
-            ) = rrr.adapt_facet_weights_from_previous_timestep_click_info(
+            ) = rrr.adapt_facet_weights_from_previous_timestep_click_info_triplet_loss(
                 previous_click_info_lst=clicksinfo_dict, query_book_id=b_id
             )
         elif not utils.check_if_hovered(

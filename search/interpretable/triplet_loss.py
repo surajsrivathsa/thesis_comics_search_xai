@@ -10,7 +10,7 @@ def group_triplet_loss_single_epoch(
     fd=[0, 3, 48, 64, 65],
     global_weights=np.array([1.0, 1.0, 1.0, 1.0]),
 ):
-    loss_vector = np.array([0.0, 0.0, 0.0, 0.0])
+    loss_vector = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     for idx, elem in enumerate(fd):
 
         if idx == len(fd) - 1:
@@ -31,15 +31,22 @@ def group_triplet_loss_single_epoch(
             )
         )
 
-        constraint_distance_matrix = euclidean_distances(
-            positive_feat_np[:, fd[idx] : fd[idx + 1]],
-            negative_feat_np[:, fd[idx] : fd[idx + 1]],
-        )
-        constraint_distance = np.mean(constraint_distance_matrix)
+        # constraint_distance_matrix = euclidean_distances(
+        #     positive_feat_np[:, fd[idx] : fd[idx + 1]].reshape(
+        #         positive_feat_np.shape[0], fd[idx + 1] - fd[idx + 1]
+        #     ),
+        #     negative_feat_np[:, fd[idx] : fd[idx + 1]].reshape(
+        #         negative_feat_np.shape[0], fd[idx + 1] - fd[idx + 1]
+        #     ),
+        # )
+        # # this reshape is required to artifically maintain two dimensions
+        # avg_constraint_distance = np.mean(constraint_distance_matrix)
 
-        loss_vector[idx] += max(-1, pos_dist - neg_dist - constraint_distance + margin)
-
-        # print(pos_dist, neg_dist, max(-0.1, pos_dist - neg_dist + margin))
+        # print(
+        #     idx, pos_dist, neg_dist, max(-0.1, pos_dist - neg_dist + margin),
+        # )
+        # print()
+        loss_vector[idx] += max(-1, pos_dist - neg_dist + margin)
 
     # avergae loss vector
     # loss_vector = loss_vector/len(fd)
@@ -71,18 +78,22 @@ def group_triplet_loss(
         global_weights = global_weights - (learning_rate * loss_vector)
 
         # renormalize global weights so that they adjust to one
-        global_weights = global_weights / (np.max(global_weights) + 1e-6)
+        global_weights = global_weights / (np.max(global_weights) + 1e-3)
 
-        # if i % 250 == 0:
-        #     print("epoch: {} | loss_vector: {} | global weights: {}".format(i, loss_vector, global_weights))
-        #     print(" ------- ------- ------- ------- -------- ------")
-        #     print()
+        if i % 100 == 0:
+            print(
+                "epoch: {} | loss_vector: {} | global weights: {}".format(
+                    i, loss_vector, global_weights
+                )
+            )
+            print(" ------- ------- ------- ------- -------- ------")
+            print()
 
     feature_importance = {
         "gender": global_weights[0],
-        "super_sense": global_weights[1],
+        "supersense": global_weights[1],
         "genre_comb": global_weights[2],
-        "story_pace": global_weights[3],
+        "panel_ratio": global_weights[3],
         "comic_cover_img": global_weights[4],
         "comic_cover_txt": global_weights[5],
     }

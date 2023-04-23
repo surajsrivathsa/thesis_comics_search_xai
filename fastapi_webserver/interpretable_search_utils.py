@@ -22,7 +22,10 @@ def adaptive_rerank_coarse_search_results(
     historical_book_ids_lst=[],
 ):
 
-    interpretable_search_top_k_df, historical_book_ids_lst = interpretable_search.adaptive_rerank_coarse_search_results(
+    (
+        interpretable_search_top_k_df,
+        historical_book_ids_lst,
+    ) = interpretable_search.adaptive_rerank_coarse_search_results(
         normalized_feature_importance_dict=normalized_feature_importance_dict,
         coarse_search_results_lst=coarse_search_results_lst,
         query_comic_book_id=query_comic_book_id,
@@ -73,6 +76,8 @@ def adaptive_rerank_coarse_search_results(
         d["id"] = idx
         if "query_book" not in d:
             d["query_book"] = False
+        d["thumbsUp"] = 0
+        d["thumbsDown"] = 0
 
         interpretable_filtered_book_new_lst.append(d)
 
@@ -88,5 +93,9 @@ def adaptive_rerank_coarse_search_results(
     #     + interpretable_filtered_book_new_lst[7:14]
     # )
 
-    return (interpretable_filtered_book_new_lst, interpretable_filtered_book_df, historical_book_ids_lst)
+    return (
+        interpretable_filtered_book_new_lst,
+        interpretable_filtered_book_df,
+        historical_book_ids_lst,
+    )
 

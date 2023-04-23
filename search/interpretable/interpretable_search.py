@@ -14,6 +14,7 @@ import common_functions.backend_utils as utils
 import common_constants.backend_constants as cst
 
 # import triplet_loss
+
 # from supervised_feature_importance import (
 #     supervised_feature_importance_using_different_models,
 # )
@@ -191,12 +192,10 @@ def adaptive_rerank_coarse_search_results(
     return (interpretable_search_top_k_df, new_historical_book_ids_lst)
 
 
-
 # def find_best_features_using_triplet_loss(
 #     anchors_book_idx,
 #     pos_constraint_book_idx,
 #     neg_constraint_book_idx,
-#     selected_idx,
 #     triplet_loss_type="group",
 # ):
 
@@ -209,7 +208,9 @@ def adaptive_rerank_coarse_search_results(
 #             anchor_feature_np=anchor_feature_np,
 #             positive_feature_np=positive_feature_np,
 #             negative_feature_np=negative_feature_np,
-#             global_weights=np.array([1.0, 1.0, 1.0, 1.0]),
+#             global_weights=np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0]),
+#             fd=[0, 3, 48, 64, 65, 2113, 2117],
+#             epochs=500,
 #         )
 #     else:
 #         feature_importance = triplet_loss.individual_triplet_loss(

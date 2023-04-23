@@ -4,8 +4,10 @@ from sklearn.inspection import permutation_importance
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.utils.class_weight import compute_class_weight, compute_sample_weight
+import itertools
 import lime
 import lime.lime_tabular
+import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -14,6 +16,7 @@ sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 ## import custom functions
 import common_functions.backend_utils as utils
 import common_constants.backend_constants as cst
+from search.interpretable.triplet_loss import group_triplet_loss
 
 # clf = PassiveAggressiveClassifier(max_iter=100, random_state=7, tol=1e-3)
 clf_pipe = Pipeline(
@@ -28,7 +31,7 @@ clf_pipe = Pipeline(
                 tol=2e-3,
                 loss="modified_huber",
                 random_state=7,
-                validation_fraction=0.3,
+                validation_fraction=0.2,
             ),
         ),
     ]
@@ -48,6 +51,28 @@ clf_pipe = Pipeline(
 ) = utils.load_all_interpretable_features()
 book_metadata_dict, comic_book_metadata_df = utils.load_book_metadata()
 print(interpretable_scaled_features_np.shape)
+
+
+def normalize_feature_weights(feature_importance_dict: dict, dist_margin=0.1):
+    normalized_feature_importance_dict = {}
+
+    feature_importance_lst = list(feature_importance_dict.values())
+    max_feat_val = max(feature_importance_lst)
+    min_feat_val = min(feature_importance_lst)
+    print("min: {}, max: {}".format(min_feat_val, max_feat_val))
+    avg_feat_val = sum(feature_importance_lst) / (len(feature_importance_lst) + 0.01)
+
+    for key, val in feature_importance_dict.items():
+        normalized_feature_importance_dict[key] = abs(
+            val - min_feat_val + dist_margin
+        ) / (abs(max_feat_val - min_feat_val) + dist_margin)
+
+        # print()
+        # print("numerator: {}".format(abs(val - min_feat_val + dist_margin)))
+        # print("denominator: {}".format(abs(max_feat_val) + dist_margin))
+        # print()
+
+    return normalized_feature_importance_dict
 
 
 def partial_pipe_fit(
@@ -326,6 +351,143 @@ def adapt_facet_weights_from_previous_timestep_click_info(
         normalized_feature_importance_dict,
         clf_pipe["clf"].coef_,
     )
+
+
+def adapt_facet_weights_from_previous_timestep_click_info_triplet_loss(
+    previous_click_info_lst: list, query_book_id: int
+):
+    """
+        case 1:
+        len(interested_books) > 0 and len(interested_books) > 0:
+            - use itertools.product to get all possible combinations of anchor, positive and negative
+            - if number of combinations are more than 100, then select randomly 100
+            - form three sets of numy arrays one each for anchor, positive and negative
+            - try calling group triplet loss, if it fails use default feature importance.
+        case 2:
+        len(interested_books) > 0 and len(interested_books) == 0:
+            - keep previous feature importance values
+        case 3:
+        len(interested_books) == 0 and len(interested_books) > 0:
+            - use default feature importance values
+        case 4:
+        len(interested_books) == 0 and len(interested_books) == 0:
+            - default feature importance values
+    """
+
+    # declare default feature importance incase of any failure
+    default_feature_importance = {
+        "gender": 1.0,
+        "supersense": 1.0,
+        "genre_comb": 1.0,
+        "panel_ratio": 1.0,
+        "comic_cover_img": 1.0,
+        "comic_cover_txt": 1.0,
+    }
+
+    # separate out positive and negative books
+    all_books_except_query_idx_lst = [
+        d["comic_no"] for d in previous_click_info_lst if d["comic_no"] != query_book_id
+    ]
+
+    # positive books are interested books which were hovered => p
+    interested_books_except_query_idx_lst = [
+        d["comic_no"]
+        for d in previous_click_info_lst
+        if d["comic_no"] != query_book_id and d["interested"] > 0.1
+    ]
+
+    # negative books were non-hovered disinterested books. => n
+    discarded_books_except_query_idx_lst = [
+        d["comic_no"]
+        for d in previous_click_info_lst
+        if d["comic_no"] != query_book_id and d["interested"] < 0.1
+    ]
+
+    # anchor
+    anchor_idx_lst = [query_book_id]
+
+    all_books_lst = [
+        anchor_idx_lst,
+        interested_books_except_query_idx_lst,
+        discarded_books_except_query_idx_lst,
+    ]
+
+    if (
+        len(interested_books_except_query_idx_lst) > 0
+        and len(discarded_books_except_query_idx_lst) > 0
+    ):
+
+        combination_tuple_lst = [p for p in itertools.product(*all_books_lst)]
+        # [(5, 100, 9), (5, 100, 2), (5, 101, 2)]
+
+        anchor_feat_np = np.zeros(
+            (len(combination_tuple_lst), interpretable_scaled_features_np.shape[1]),
+            dtype="float",
+        )
+        positive_feat_np = np.zeros(
+            (len(combination_tuple_lst), interpretable_scaled_features_np.shape[1]),
+            dtype="float",
+        )
+        negative_feat_np = np.zeros(
+            (len(combination_tuple_lst), interpretable_scaled_features_np.shape[1]),
+            dtype="float",
+        )
+
+        for index, (anchor_idx, positive_idx, negative_idx) in enumerate(
+            combination_tuple_lst
+        ):
+            anchor_feat_np[index, :] = interpretable_scaled_features_np[anchor_idx, :]
+            positive_feat_np[index, :] = interpretable_scaled_features_np[
+                positive_idx, :
+            ]
+            negative_feat_np[index, :] = interpretable_scaled_features_np[
+                negative_idx, :
+            ]
+
+        try:
+            feature_importance_dict = group_triplet_loss(
+                anchor_feature_np=anchor_feat_np,
+                positive_feature_np=positive_feat_np,
+                negative_feature_np=negative_feat_np,
+                global_weights=np.array([1.0, 1.0, 1.0, 1.0, 0.5, 0.5]),
+                fd=[0, 3, 48, 64, 65, 2113, 2117],
+                epochs=501,
+                margin=0.2,
+                learning_rate=2e-3,
+            )
+            normalized_feature_importance_dict = normalize_feature_weights(
+                feature_importance_dict
+            )
+            print()
+            print(
+                "Triplet loss real feature importance: {}".format(
+                    feature_importance_dict
+                )
+            )
+            print()
+            print(
+                " ================= =================== ================== =================== "
+            )
+            print()
+            print(
+                "Triplet loss normalized feature importance: {}".format(
+                    normalized_feature_importance_dict
+                )
+            )
+            print()
+        except Exception as e:
+            print("error in triplet loss: {}".format(repr(e)))
+            print(traceback.format_exc())
+            feature_importance_dict = default_feature_importance.copy()
+            normalized_feature_importance_dict = feature_importance_dict.copy()
+        finally:
+            clf_coeff = None
+    else:
+        feature_importance_dict = default_feature_importance.copy()
+        normalized_feature_importance_dict = feature_importance_dict.copy()
+        clf_coeff = None
+
+    return (feature_importance_dict, normalized_feature_importance_dict, clf_coeff)
 
 
 if __name__ == "__main__":
