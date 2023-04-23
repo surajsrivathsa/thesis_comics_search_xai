@@ -108,6 +108,12 @@ class FacetWeight(BaseModel):
     panel_ratio: float = 1.0
     comic_cover_img: Optional[float] = 1.0
     comic_cover_txt: Optional[float] = 1.0
+    cld: Optional[float] = 0.1
+    edh: Optional[float] = 0.1
+    hog: Optional[float] = 0.1
+    text: Optional[float] = 1.0
+    comic_img: Optional[float] = 0.1
+    comic_txt: Optional[float] = 0.1
 
 
 @app.get("/fake_book/{b_id}", status_code=200)
@@ -164,7 +170,7 @@ def create_fake_clicks_for_previous_timestep_data(
 ):
 
     index_lst = [i for i in range(20)]
-    interested_lst_size = random.randint(1, 10)
+    interested_lst_size = random.randint(2, 5)
     interested_books_idx_lst = np.random.choice(
         index_lst, size=interested_lst_size, replace=False
     )
@@ -579,6 +585,141 @@ async def view_comic_book(b_id: int = 1):
         file_like = BytesIO(file.read())
         # Return the streamed response
         return StreamingResponse(file_like, media_type="application/pdf")
+
+
+@app.post("/book_search_no_reranking", status_code=200)
+async def search_with_no_reranking(
+    cbl: BookList,
+    b_id: int = Query(...),
+    generate_fake_clicks: bool = Query(default=True),
+    input_feature_importance_dict: Optional[FacetWeight] = FacetWeight(
+        cld=0.1,
+        edh=0.1,
+        hog=0.1,
+        text=1.0,
+        comic_img=1.0,
+        comic_txt=1.0,
+        gender=1.0,
+        supersense=1.0,
+        genre_comb=1.0,
+        panel_ratio=1.0,
+        comic_cover_img=1.0,
+        comic_cover_txt=1.0,
+    ),
+):
+    (
+        coarse_filtered_book_new_lst,
+        coarse_filtered_book_df,
+    ) = cs_utils.perform_coarse_search_without_reranking(
+        b_id=b_id, feature_weight_dict=input_feature_importance_dict.dict(), top_n=19
+    )
+
+    print(coarse_filtered_book_df.head(100))
+    print(coarse_filtered_book_new_lst)
+    print(
+        "generate_fake_clicks: {} | {}".format(
+            generate_fake_clicks, type(generate_fake_clicks)
+        )
+    )
+
+    if generate_fake_clicks:
+        clicksinfo_dict = create_fake_clicks_for_previous_timestep_data(
+            coarse_filtered_book_df=coarse_filtered_book_df
+        )
+
+    else:
+        clicksinfo_dict = create_real_clicks_for_previous_timestamp_data(
+            cbl.interested_book_lst
+        )  # [{"comic_no": "1", "clicked": 1.0}, {"comic_no": "3", "clicked": 0.0}]
+    print("clicksinfo_dict: {}".format(clicksinfo_dict))
+
+    normalized_feature_importance_dict = {
+        "gender": round(random.random(), 2),
+        "supersense": round(random.random(), 2),
+        "genre_comb": round(random.random(), 2),
+        "panel_ratio": round(random.random(), 2),
+        "comic_cover_img": round(random.random(), 2),
+        "comic_cover_txt": round(random.random(), 2),
+    }
+    clf_coef = None
+    feature_importance_dict = normalized_feature_importance_dict
+    print(
+        "normalized_feature_importance_dict: {}".format(
+            normalized_feature_importance_dict
+        )
+    )
+
+    if generate_fake_clicks:
+        relevance_feedback_explanation_dict = await erf.explain_relevance_feedback(
+            clicksinfo_dict=[],
+            query_book_id=b_id,
+            search_results=coarse_filtered_book_new_lst,
+            model=sentence_transformer_model,
+        )
+    else:
+
+        print("clicksinfo_dict: {}".format(clicksinfo_dict))
+        relevance_feedback_explanation_dict = await erf.explain_relevance_feedback(
+            clicksinfo_dict=clicksinfo_dict,
+            query_book_id=b_id,
+            search_results=coarse_filtered_book_new_lst,
+            model=sentence_transformer_model,
+        )
+
+    # add facet weights to UI dict
+    print(
+        {
+            **coarse_filtered_book_new_lst[0],
+            **normalized_feature_importance_dict,
+            **relevance_feedback_explanation_dict,
+        }
+    )
+    interpretable_filtered_book_new_lst = [
+        {
+            **d,
+            **normalized_feature_importance_dict,
+            **relevance_feedback_explanation_dict,
+        }
+        for idx, d in enumerate(coarse_filtered_book_new_lst)
+        if idx <= 20
+    ]
+
+    print(feature_importance_dict, clf_coef)
+    interpretable_filtered_book_new_lst = [
+        coarse_filtered_book_new_lst.copy(),
+        normalized_feature_importance_dict,
+        relevance_feedback_explanation_dict,
+    ]
+
+    print()
+    print(" +++++++++++++ ++++++++++++ +++++++++++++ ")
+    print()
+
+    for x in coarse_filtered_book_new_lst:
+        print(x)
+
+    print()
+    print(" +++++++++++++ ++++++++++++ ++++++++++++++ ")
+    print()
+
+    # log userrs interaction data for evaluation
+    global latest_session_folderpath
+    utils.log_session_data(
+        latest_session_folderpath,
+        {
+            "input_data": {
+                "cbl": cbl.dict(),
+                "b_id": b_id,
+                "generate_fake_clicks": generate_fake_clicks,
+                "input_feature_importance_dict": input_feature_importance_dict.dict(),
+            },
+            "output_data": {
+                "interpretable_filtered_book_new_lst": interpretable_filtered_book_new_lst
+            },
+            "function_name": "search_with_real_clicks",
+        },
+    )
+    return interpretable_filtered_book_new_lst
 
 
 if __name__ == "__main__":

@@ -129,12 +129,10 @@ def adaptive_rerank_coarse_search_results(
         panel_ratio_feat_np[coarse_filtered_book_idx_lst, :],
         panel_ratio_feat_np[max(query_book_id, 0) : query_book_id + 1, :],
     )
-
     comic_cover_img_cosine_similarity = utils.cosine_similarity(
         comic_cover_img_np[coarse_filtered_book_idx_lst, :],
         comic_cover_img_np[max(query_book_id, 0) : query_book_id + 1, :],
     )
-
     comic_cover_txt_cosine_similarity = utils.cosine_similarity(
         comic_cover_txt_np[coarse_filtered_book_idx_lst, :],
         comic_cover_txt_np[max(query_book_id, 0) : query_book_id + 1, :],

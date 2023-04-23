@@ -1,5 +1,6 @@
 import os, sys
 import pandas as pd, numpy as np
+import math
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -46,6 +47,58 @@ def perform_coarse_search(
         coarse_filtered_book_new_lst.append(d)
 
     print("Query Book : {} ".format(b_id))
+    # return (coarse_filtered_book_new_lst, coarse_filtered_book_df)
+    return (coarse_filtered_book_new_lst, coarse_filtered_book_df)
+
+
+def perform_coarse_search_without_reranking(
+    b_id: int, feature_weight_dict: dict, top_n: int
+):
+    top_n_results_df = coarse_search.comics_coarse_search_without_reranking(
+        query_comic_book_id=b_id, feature_weight_dict=feature_weight_dict, top_n=top_n
+    )
+    coarse_filtered_book_df = top_n_results_df[
+        ["comic_no", "book_title", "genre", "year"]
+    ]
+
+    query_book_obj = book_metadata_dict[b_id]  # get querry object details
+
+    coarse_filtered_book_df.fillna("", inplace=True)
+
+    coarse_filtered_book_lst = coarse_filtered_book_df.to_dict("records")
+    coarse_filtered_book_new_lst = []
+
+    for idx, d in enumerate(coarse_filtered_book_lst):
+        d["id"] = idx
+        coarse_filtered_book_new_lst.append(d)
+
+    print("Query Book : {} ".format(b_id))
+
+    coarse_filtered_book_lst.insert(
+        7,
+        {
+            "comic_no": query_book_obj[0],
+            "book_title": query_book_obj[1],
+            "genre": str(query_book_obj[2]),
+            "year": query_book_obj[3]
+            if not isinstance(query_book_obj[3], str)
+            and not math.isnan(query_book_obj[3])
+            else 1950,
+            "query_book": True,
+        },
+    )
+
+    coarse_filtered_book_new_lst = []
+    print(coarse_filtered_book_lst[:2])
+
+    for idx, d in enumerate(coarse_filtered_book_lst):
+        d["id"] = idx
+        if "query_book" not in d:
+            d["query_book"] = False
+        d["thumbsUp"] = 0
+        d["thumbsDown"] = 0
+
+        coarse_filtered_book_new_lst.append(d)
     # return (coarse_filtered_book_new_lst, coarse_filtered_book_df)
     return (coarse_filtered_book_new_lst, coarse_filtered_book_df)
 
