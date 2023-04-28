@@ -184,7 +184,7 @@ def load_local_explanation_book_cover():
 
 def load_local_explanation_w5_h1_facets():
     w5_h1_dict = {}
-    
+
     with open(cst.W5_H1_FACETS_JSON_FILEPATH) as f:
         spellchecked_parsed_json_lst = json.load(f)
         for valdict in spellchecked_parsed_json_lst:
@@ -193,6 +193,21 @@ def load_local_explanation_w5_h1_facets():
     print(w5_h1_dict[540])
 
     return w5_h1_dict
+
+
+def load_local_explanation_characters():
+    characters_info_dict = {}
+    tmp_characters_info_dict = {}
+
+    with open(cst.CHARACTERS_JSON_FILEPATH) as f:
+        tmp_characters_info_dict = json.load(f)
+
+    for key, val in tmp_characters_info_dict.items():
+        characters_info_dict[int(key)] = val
+
+    print(characters_info_dict[540])
+
+    return characters_info_dict
 
 
 def filter_fnc(doc):

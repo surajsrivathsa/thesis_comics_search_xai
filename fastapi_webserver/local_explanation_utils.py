@@ -12,6 +12,7 @@ import common_functions.backend_utils as utils
 story_pace_feature_dict = utils.load_local_explanation_story_pace()
 book_cover_prompt_dict = utils.load_local_explanation_book_cover()
 w5_h1_facets_dict = utils.load_local_explanation_w5_h1_facets()
+character_info_dict = utils.load_local_explanation_characters()
 print("keys local explanation: {}".format(len(story_pace_feature_dict.keys())))
 print("example local explanation: {}".format(story_pace_feature_dict[10]))
 print()
@@ -23,11 +24,40 @@ def fetch_story_pace(book_id: int):
     if book_id in story_pace_feature_dict:
         # print(story_pace_feature_dict[book_id], type(story_pace_feature_dict[book_id]))
         try:
-            return [int(i) for i in story_pace_feature_dict[book_id]]
+            return [100.0 / (int(i) + 1.0) for i in story_pace_feature_dict[book_id]]
         except Exception as e:
-            return [int(i) for i in story_pace_feature_dict[book_id]]
+            return [
+                100.0,
+                100.0,
+                100.0,
+                100.0,
+                100.0,
+                100.0,
+                100.0,
+                100.0,
+                100.0,
+                100.0,
+            ]
     else:
-        return [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        return [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
+
+
+def find_numpages_and_storypace(book_id: int):
+    default_response = {
+        "comic_no": book_id,
+        "num_pages": 1,
+        "num_panels": 1,
+        "pace_of_story": 1,
+    }
+    story_pace_lst = fetch_story_pace(book_id)
+
+    default_response["num_pages"] = len(story_pace_lst)
+    default_response["num_panels"] = sum(
+        [int(i) for i in story_pace_feature_dict[book_id]]
+    )
+    default_response["pace_of_story"] = round(np.mean(story_pace_lst), 2)
+
+    return default_response
 
 
 def fetch_5w_1h_facets(book_id: int):
@@ -199,4 +229,32 @@ def fetch_book_cover_keywords(book_id: int):
         return book_cover_prompt_dict[book_id]
     else:
         return ["comic book cover"]
+
+
+def fetch_character_info_for_local_explanation(book_id: int):
+    default_response = {
+        "comic_no": book_id,
+        "total_characters": 1,
+        "male_characters": [],
+        "female_characters": [],
+        "occupations": [],
+    }
+    if (
+        book_id not in character_info_dict
+        or character_info_dict[book_id]["total_characters"] < 3
+    ):
+        return default_response
+    else:
+        default_response["total_characters"] = character_info_dict[book_id][
+            "total_characters"
+        ]
+        default_response["male_characters"] = character_info_dict[book_id][
+            "male_characters"
+        ]
+        default_response["female_characters"] = character_info_dict[book_id][
+            "female_characters"
+        ]
+        default_response["occupations"] = character_info_dict[book_id]["occupations"]
+
+        return default_response
 

@@ -195,6 +195,11 @@ def create_real_clicks_for_previous_timestamp_data(interested_book_lst: List):
     return interested_book_dict_lst
 
 
+def fetch_genres(book_id: int):
+    genre_lst = book_metadata_dict[book_id][2].split("|")
+    return {"comic_no": book_id, "genre": genre_lst}
+
+
 @app.post("/book_search", status_code=200)
 async def search_with_real_clicks(
     cbl: BookList,
@@ -720,6 +725,43 @@ async def search_with_no_reranking(
         },
     )
     return interpretable_filtered_book_new_lst
+
+
+@app.post("/compare_books", status_code=200)
+async def get_explanation_comparision(selected_book_for_comparison_lst: dict):
+    print(selected_book_for_comparison_lst)
+    comparision_dict = {"compared_books": []}
+    print(selected_book_for_comparison_lst)
+    for obj in selected_book_for_comparison_lst["selected_book_lst"]:
+        tmp_dict = {}
+        selected_book_id = obj["comic_no"]
+        tmp_dict = {
+            selected_book_id: {"story_pace": {}, "characters": {}, "genres": {}}
+        }
+        tmp_dict[selected_book_id]["story_pace"] = le_utils.find_numpages_and_storypace(
+            selected_book_id
+        )
+        tmp_dict[selected_book_id][
+            "characters"
+        ] = le_utils.fetch_character_info_for_local_explanation(selected_book_id)
+        tmp_dict[selected_book_id]["genres"] = fetch_genres(selected_book_id)
+
+        comparision_dict["compared_books"].append(tmp_dict)
+
+    # log data for evaluation
+    global latest_session_folderpath
+    utils.log_session_data(
+        latest_session_folderpath,
+        {
+            "input_data": {
+                "selected_book_for_comparison_lst": selected_book_for_comparison_lst
+            },
+            "output_data": comparision_dict,
+            "function_name": "get_explanation_comparision",
+        },
+    )
+
+    return comparision_dict
 
 
 if __name__ == "__main__":
