@@ -601,7 +601,12 @@ async def get_explanation_comparision(selected_book_for_comparison_lst: dict):
         tmp_dict = {}
         selected_book_id = obj["comic_no"]
         tmp_dict = {
-            selected_book_id: {"story_pace": {}, "characters": {}, "genres": {}}
+            selected_book_id: {
+                "story_pace": {},
+                "characters": {},
+                "genres": {},
+                "book_cover": {},
+            }
         }
         tmp_dict[selected_book_id]["story_pace"] = le_utils.find_numpages_and_storypace(
             selected_book_id
@@ -610,6 +615,9 @@ async def get_explanation_comparision(selected_book_for_comparison_lst: dict):
             "characters"
         ] = le_utils.fetch_character_info_for_local_explanation(selected_book_id)
         tmp_dict[selected_book_id]["genres"] = fetch_genres(selected_book_id)
+        tmp_dict[selected_book_id]["book_cover"] = le_utils.fetch_book_cover_keywords(
+            selected_book_id
+        )
 
         comparision_dict["compared_books"].append(tmp_dict)
 
@@ -1186,6 +1194,62 @@ async def search_with_real_clicks_and_random_explanation_feedback(
         },
     )
     return interpretable_filtered_book_new_lst
+
+
+@app.post("/compare_books_with_random", status_code=200)
+async def get_explanation_comparision_with_random(
+    selected_book_for_comparison_lst: dict,
+):
+    print(selected_book_for_comparison_lst)
+    comparision_dict = {"compared_books": []}
+    selected_book_ids_for_comparison_lst = [
+        obj["comic_no"] for obj in selected_book_for_comparison_lst
+    ]
+    all_books_ids_lst = [
+        x for x in range(1, 1712) if x not in selected_book_ids_for_comparison_lst
+    ]
+    random_book_ids_lst = random.choice(
+        all_books_ids_lst, k=len(selected_book_for_comparison_lst)
+    )
+    for idx, obj in enumerate(selected_book_for_comparison_lst["selected_book_lst"]):
+        tmp_dict = {}
+        selected_book_id = obj["comic_no"]
+        tmp_dict = {
+            selected_book_id: {
+                "story_pace": {},
+                "characters": {},
+                "genres": {},
+                "book_cover": {},
+            }
+        }
+        tmp_dict[selected_book_id]["story_pace"] = le_utils.find_numpages_and_storypace(
+            random_book_ids_lst[idx]
+        )
+        tmp_dict[selected_book_id][
+            "characters"
+        ] = le_utils.fetch_character_info_for_local_explanation(
+            random_book_ids_lst[idx]
+        )
+        tmp_dict[selected_book_id]["genres"] = fetch_genres(random_book_ids_lst[idx])
+        tmp_dict[selected_book_id]["book_cover"] = le_utils.fetch_book_cover_keywords(
+            random_book_ids_lst[idx]
+        )
+        comparision_dict["compared_books"].append(tmp_dict)
+
+    # log data for evaluation
+    global latest_session_folderpath
+    utils.log_session_data(
+        latest_session_folderpath,
+        {
+            "input_data": {
+                "selected_book_for_comparison_lst": selected_book_for_comparison_lst
+            },
+            "output_data": comparision_dict,
+            "function_name": "get_explanation_comparision_with_random",
+        },
+    )
+
+    return comparision_dict
 
 
 if __name__ == "__main__":

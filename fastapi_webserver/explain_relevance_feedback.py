@@ -18,9 +18,8 @@ for book_id, val_lst in book_cover_prompt_dict.items():
 all_prompts_lst = list(set(all_prompts_lst))
 print(
     "len prompts: {} | sample prompts: {}".format(
-        len(all_prompts_lst, all_prompts_lst[:10])
+        len(all_prompts_lst), all_prompts_lst[:10])
     )
-)
 
 
 def create_model():
