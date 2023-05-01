@@ -278,6 +278,75 @@ def filter_fnc(doc):
         and "lower quality" not in doc
         and "tin foiling" not in doc
         and "blue - ray screenshot" not in doc
+        and "full page" not in doc
+        and "reduce duplication" not in doc
+        and "very stylized" not in doc
+        and "circa 1" not in doc
+        and "sfx" not in doc
+        and "2 d animation" not in doc
+        and "part of the screen" not in doc
+        and "60s poster" not in doc
+        and "color displacement" not in doc
+        and "screen shot" not in doc
+        and "entire character!" not in doc
+        and "bottom shot" not in doc
+        and "marvel 8 0" not in doc
+        and "marvel 1" not in doc
+        and ":" not in doc
+        and "edition" not in doc
+        and "editorial" not in doc
+        and "full color still" not in doc
+        and "newspaper" not in doc
+        and "advertisement" not in doc
+        and "super complex" not in doc
+        and "various refine" not in doc
+        and "several character design" not in doc
+        and "1 9 6 0" not in doc
+        and "detail shots" not in doc
+        and "1 9 3 0" not in doc
+        and "1 9 4 0" not in doc
+        and "1 9 5 0" not in doc
+        and "1 9 7 0" not in doc
+        and "general human form" not in doc
+        and "visual fidelity" not in doc
+        and "comic book panels" not in doc
+        and "an action pose" not in doc
+        and "4 0" not in doc
+        and "5 0" not in doc
+        and "6 0" not in doc
+        and "7 0" not in doc
+        and "8 0" not in doc
+        and "multiple stories" not in doc
+        and "astounding stories" not in doc
+        and "comic page" not in doc
+        and "storybook" not in doc
+        and "layout design" not in doc
+        and "sunday" not in doc
+        and "comic book page" not in doc
+        and "flash image" not in doc
+        and "svg comic style" not in doc
+        and "comics style" not in doc
+        and "iconic logo" not in doc
+        and "a comic strip with an image of a group of people" not in doc
+        and "bunch of cartoon characters" not in doc
+        and "comic lines" not in doc
+        and " composition" not in doc
+        and "bunch of people" not in doc
+        and "game card" not in doc
+        and "font" not in doc
+        and "game logo" not in doc
+        and "official marvel media" not in doc
+        and "without text" not in doc
+        and "legible" not in doc
+        and "close up of a comic book" not in doc
+        and "panel of a marvel comic" not in doc
+        and "golden age illustrat" not in doc
+        and "dvd cover" not in doc
+        and "cover illustration" not in doc
+        and "classic chrome" not in doc
+        and "complete scene" not in doc
+        and "loss comic" not in doc
+        and "comic artstyle" not in doc
         and len(doc) > 9
         and len(doc.split()) > 1
     ):

@@ -1,6 +1,7 @@
 import os, sys
 import pandas as pd, numpy as np
 import re, math
+import random
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -224,6 +225,36 @@ def comics_coarse_search_without_reranking(
     )
 
     return top_k_df
+
+
+def comics_random_search(
+    query_comic_book_id: int, feature_weight_dict: dict, top_n: int
+):
+    all_books_except_query_books = [
+        i
+        for i in range(1, comic_book_metadata_df.shape[0] - 5)
+        if i != query_book_comic_id
+    ]
+    serp_ids_lst = random.choice(all_books_except_query_books, k=19)
+
+    query_book_obj = book_metadata_dict[
+        query_comic_book_id
+    ]  # get querry object details
+    serp_lst = [
+        {
+            "comic_no": book_metadata_dict[id][0],
+            "book_title": book_metadata_dict[id][1],
+            "genre": str(book_metadata_dict[id][2]),
+            "year": book_metadata_dict[id][3]
+            if not isinstance(book_metadata_dict[id][3], str)
+            and not math.isnan(book_metadata_dict[id][3])
+            else 1950,
+            "query_book": False,
+        }
+        for id in serp_ids_lst
+    ]
+
+    return serp_lst
 
 
 if __name__ == "__main__":
