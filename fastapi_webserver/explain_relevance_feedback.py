@@ -1,5 +1,6 @@
 import os, sys
 import random
+import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer, util
 import asyncio, math
@@ -18,8 +19,9 @@ for book_id, val_lst in book_cover_prompt_dict.items():
 all_prompts_lst = list(set(all_prompts_lst))
 print(
     "len prompts: {} | sample prompts: {}".format(
-        len(all_prompts_lst), all_prompts_lst[:10])
+        len(all_prompts_lst), all_prompts_lst[:10]
     )
+)
 
 
 def create_model():
@@ -97,6 +99,14 @@ def best_matching_themes_between_interestedbooks_and_searchresults(
     return sorted_explanations_lst[:return_top_k]
 
 
+def get_random_prompts():
+    random_prompt_lst = random.choice(all_prompts_lst).split(",")
+    if random_prompt_lst:
+        return random.choice(random_prompt_lst)
+    else:
+        return "marvel comic"
+
+
 async def explain_relevance_feedback(
     clicksinfo_dict: list, query_book_id: int, search_results: list, model
 ):
@@ -130,7 +140,6 @@ async def explain_relevance_feedback(
     # Take only query book and last two hovered books
     if len(interested_book_ids_lst) > 3:
         interested_book_ids_lst = list(set(interested_book_ids_lst[-5:]))[-3:].copy()
-
     (
         all_interested_book_docs_lst,
         all_interested_book_prompt_to_book_ids_lst,
@@ -272,6 +281,7 @@ async def explain_relevance_feedback(
 
     """
 
+    print("returning variable")
     return relevance_feedback_explanation_dict
 
 
@@ -310,7 +320,10 @@ async def explain_relevance_feedback_at_random(
     print()
 
     # get random prompts
-    random_prompts_lst = random.choice(all_prompts_lst, k=8)
+    # random_prompts_lst = np.random.choice(all_prompts_lst, k=8)
+    random_prompts_lst = np.random.choice(
+        all_prompts_lst, size=8, replace=False
+    ).tolist()
     for idx, individual_search_result_book_id in enumerate(search_results_book_ids_lst):
 
         if interested_book_ids_lst:
@@ -335,8 +348,8 @@ async def explain_relevance_feedback_at_random(
                     else False,
                     "explanation_lst": [
                         [
-                            random.choice(all_prompts_lst),
-                            random.choice(all_prompts_lst),
+                            get_random_prompts(),
+                            get_random_prompts(),
                             erf_book_metadata_dict[interested_book_id][0],
                             erf_book_metadata_dict[interested_book_id][1],
                         ]

@@ -233,9 +233,11 @@ def comics_random_search(
     all_books_except_query_books = [
         i
         for i in range(1, comic_book_metadata_df.shape[0] - 5)
-        if i != query_book_comic_id
+        if i != query_comic_book_id
     ]
-    serp_ids_lst = random.choice(all_books_except_query_books, k=19)
+    serp_ids_lst = np.random.choice(
+        all_books_except_query_books, size=top_n, replace=False
+    ).tolist()
 
     query_book_obj = book_metadata_dict[
         query_comic_book_id

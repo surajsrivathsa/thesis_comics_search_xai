@@ -799,13 +799,21 @@ async def search_with_searchbar_inputs_with_random_serp(
         (
             coarse_filtered_book_new_lst,
             coarse_filtered_book_df,
-        ) = cs_utils.perform_random_search(b_id=b_id)
+        ) = cs_utils.perform_random_search(
+            b_id=b_id,
+            feature_weight_dict=input_feature_importance_dict.dict(),
+            top_n=19,
+        )
     else:
         b_id = 1
         (
             coarse_filtered_book_new_lst,
             coarse_filtered_book_df,
-        ) = cs_utils.perform_random_search(b_id=b_id)
+        ) = cs_utils.perform_random_search(
+            b_id=b_id,
+            feature_weight_dict=input_feature_importance_dict.dict(),
+            top_n=19,
+        )
 
     normalized_feature_importance_dict = {
         "gender": input_feature_importance_dict.gender,
@@ -833,13 +841,15 @@ async def search_with_searchbar_inputs_with_random_serp(
         historical_book_ids_lst=book_search_results_history_lst.copy(),
     )
     book_search_results_history_lst = historical_book_ids_lst.copy()
-
+    print("interpretable_filtered_book_lst: {}".format(interpretable_filtered_book_lst))
     relevance_feedback_explanation_dict = await erf.explain_relevance_feedback(
         clicksinfo_dict=[],
         query_book_id=b_id,
         search_results=interpretable_filtered_book_lst,
         model=sentence_transformer_model,
     )
+
+    print("relevance_feedback_explanation_dict: {}".format(relevance_feedback_explanation_dict))
 
     # add facet weights to UI
     interpretable_filtered_book_new_lst = [
@@ -1200,16 +1210,22 @@ async def search_with_real_clicks_and_random_explanation_feedback(
 async def get_explanation_comparision_with_random(
     selected_book_for_comparison_lst: dict,
 ):
+
     print(selected_book_for_comparison_lst)
     comparision_dict = {"compared_books": []}
     selected_book_ids_for_comparison_lst = [
-        obj["comic_no"] for obj in selected_book_for_comparison_lst
+        obj["comic_no"] for obj in selected_book_for_comparison_lst["selected_book_lst"]
     ]
     all_books_ids_lst = [
         x for x in range(1, 1712) if x not in selected_book_ids_for_comparison_lst
     ]
-    random_book_ids_lst = random.choice(
-        all_books_ids_lst, k=len(selected_book_for_comparison_lst)
+    random_book_ids_lst = np.random.choice(
+        all_books_ids_lst, size=len(selected_book_ids_for_comparison_lst), replace=False
+    ).tolist()
+    print(
+        random_book_ids_lst,
+        selected_book_ids_for_comparison_lst,
+        len(selected_book_for_comparison_lst),
     )
     for idx, obj in enumerate(selected_book_for_comparison_lst["selected_book_lst"]):
         tmp_dict = {}

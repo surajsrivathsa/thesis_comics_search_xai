@@ -109,15 +109,13 @@ def perform_random_search(b_id: int, feature_weight_dict: dict, top_n: int):
     )
 
     query_book_obj = book_metadata_dict[b_id]  # get query object details
-
+    coarse_filtered_book_lst = []
     coarse_filtered_book_new_lst = []
 
     for idx, d in enumerate(top_n_results_dict):
-        coarse_filtered_book_new_lst.append(d)
+        coarse_filtered_book_lst.append(d)
 
-    print("Query Book : {} ".format(b_id))
-
-    coarse_filtered_book_new_lst.insert(
+    coarse_filtered_book_lst.insert(
         7,
         {
             "comic_no": query_book_obj[0],
@@ -131,9 +129,9 @@ def perform_random_search(b_id: int, feature_weight_dict: dict, top_n: int):
         },
     )
 
-    print(coarse_filtered_book_new_lst[:2])
+    print(coarse_filtered_book_lst[:2], len(coarse_filtered_book_lst))
 
-    for idx, d in enumerate(coarse_filtered_book_new_lst):
+    for idx, d in enumerate(coarse_filtered_book_lst):
         d["id"] = idx
         if "query_book" not in d:
             d["query_book"] = False
@@ -142,7 +140,6 @@ def perform_random_search(b_id: int, feature_weight_dict: dict, top_n: int):
 
         coarse_filtered_book_new_lst.append(d)
 
-    coarse_filtered_book_df = pd.DataFrame().from_records(coarse_filtered_book_new_lst)
-    # return (coarse_filtered_book_new_lst, coarse_filtered_book_df)
+    coarse_filtered_book_df = pd.DataFrame.from_records(coarse_filtered_book_new_lst)
     return (coarse_filtered_book_new_lst, coarse_filtered_book_df)
 
